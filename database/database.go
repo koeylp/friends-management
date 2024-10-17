@@ -2,24 +2,33 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"log"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/koeylp/friends-management/config"
-
-	"github.com/jackc/pgx/v5"
+	"github.com/volatiletech/sqlboiler/boil"
 )
 
-func InitDB() (*pgx.Conn, error) {
-	dbURL := config.GetDBConfig()
-	conn, err := pgx.Connect(context.Background(), dbURL)
+var DB *sql.DB
+
+func InitDB() (*sql.DB, error) {
+	dbConfig := config.GetDBConfig()
+	connStr := dbConfig.GetConnectionString()
+
+	db, err := sql.Open("pgx", connStr)
 	if err != nil {
+		log.Fatalf("Failed to connect to the database: %v", err)
 		return nil, err
 	}
+	DB = db
+	boil.SetDB(DB)
 
-	if err = conn.Ping(context.Background()); err != nil {
-		return nil, err
+	return DB, nil
+}
+
+func CloseDB(ctx context.Context) {
+	if err := DB.Close(); err != nil {
+		log.Fatalf("Failed to close the database: %v", err)
 	}
-
-	log.Println("Successfully connected to the database!")
-	return conn, nil
 }
