@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/koeylp/friends-management/dto/user"
-	"github.com/koeylp/friends-management/services"
+	"github.com/koeylp/friends-management/internal/dto/user"
+	"github.com/koeylp/friends-management/internal/responses"
+	"github.com/koeylp/friends-management/internal/services"
 )
 
 type UserHandler struct {
-	userService *services.UserService
+	userService services.UserService
 }
 
-func NewUserHandler(userService *services.UserService) *UserHandler {
+func NewUserHandler(userService services.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
@@ -25,13 +26,12 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-
 	err = h.userService.CreateUser(context.Background(), &createUserReq)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("User created successfully"))
+	createdResponse := responses.NewCREATED("User created successfully", nil)
+	createdResponse.Send(w)
 }
