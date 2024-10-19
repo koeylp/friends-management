@@ -5,15 +5,15 @@ import (
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/repository"
+	"github.com/koeylp/friends-management/internal/repositories"
 )
 
 type RelationshipService struct {
-	relationshipRepo repository.RelationshipRepository
-	userRepo         repository.UserRepository
+	relationshipRepo repositories.RelationshipRepository
+	userRepo         repositories.UserRepository
 }
 
-func NewRelationshipService(relationshipRepo repository.RelationshipRepository, userRepo repository.UserRepository) *RelationshipService {
+func NewRelationshipService(relationshipRepo repositories.RelationshipRepository, userRepo repositories.UserRepository) *RelationshipService {
 	return &RelationshipService{relationshipRepo: relationshipRepo, userRepo: userRepo}
 }
 

@@ -5,19 +5,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/koeylp/friends-management/internal/handlers"
-	"github.com/koeylp/friends-management/internal/repository"
+	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/services"
 )
 
 func InitUserHandler(db *sql.DB) *handlers.UserHandler {
-	userRepo := repository.NewUserRepository(db)
+	userRepo := repositories.NewUserRepository(db)
 	userService := services.NewUserService(userRepo)
 	return handlers.NewUserHandler(userService)
 }
 
 func InitRelationshipHandler(db *sql.DB) *handlers.RelationshipHandler {
-	relationshipRepo := repository.NewRelationshipRepository(db)
-	userRepo := repository.NewUserRepository(db)
+	relationshipRepo := repositories.NewRelationshipRepository(db)
+	userRepo := repositories.NewUserRepository(db)
 	relationshipService := services.NewRelationshipService(relationshipRepo, userRepo)
 	return handlers.NewRelationshipHandler(relationshipService)
 }

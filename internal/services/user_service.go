@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/repository"
+	"github.com/koeylp/friends-management/internal/repositories"
 )
 
 type UserService interface {
@@ -12,10 +12,10 @@ type UserService interface {
 }
 
 type userServiceImpl struct {
-	userRepo repository.UserRepository
+	userRepo repositories.UserRepository
 }
 
-func NewUserService(userRepo repository.UserRepository) UserService {
+func NewUserService(userRepo repositories.UserRepository) UserService {
 	return &userServiceImpl{userRepo: userRepo}
 }
 
