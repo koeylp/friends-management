@@ -55,11 +55,11 @@ func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter,
 		return
 	}
 
-	friendList := friend.FriendList{
-		Friends: friends,
-		Count:   len(friends),
-	}
+	// friendList := friend.FriendList{
+	// 	Friends: friends,
+	// 	Count:   len(friends),
+	// }
 
-	okResponse := responses.NewOK(friendList)
+	okResponse := responses.NewOK(map[string]interface{}{"friends": friends})
 	okResponse.Send(w)
 }

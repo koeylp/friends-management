@@ -6,9 +6,10 @@ import (
 )
 
 type SuccessResponse struct {
-	Success  bool        `json:"success"`
-	Status   int         `json:"status"`
-	MetaData interface{} `json:"metaData,omitempty"`
+	Success bool `json:"success"`
+	// MetaData interface{} `json:"metaData,omitempty"`
+	Data   map[string]interface{} `json:"-"`
+	Status int                    `json:"-"`
 }
 
 const (
@@ -16,32 +17,40 @@ const (
 	STATUS_CREATED = http.StatusCreated
 )
 
-var ReasonStatusCodeSuccess = map[int]string{
-	STATUS_OK:      "Success",
-	STATUS_CREATED: "Created",
-}
-
-func NewSuccessResponse(success bool, statusCode int, metaData interface{}) SuccessResponse {
+func NewSuccessResponse(success bool, statusCode int, data map[string]interface{}) SuccessResponse {
 	return SuccessResponse{
-		Success:  success,
-		Status:   statusCode,
-		MetaData: metaData,
+		Success: success,
+		Status:  statusCode,
+		// MetaData: metaData,
+		Data: data,
 	}
 }
 
 func (sr *SuccessResponse) Send(w http.ResponseWriter) {
+	// w.Header().Set("Content-Type", "application/json")
+	// w.WriteHeader(sr.Status)
+	// json.NewEncoder(w).Encode(sr)
+
+	response := make(map[string]interface{})
+
+	response["count"] = len(sr.Data)
+	for key, value := range sr.Data {
+		response[key] = value
+	}
+	response["success"] = sr.Success
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(sr.Status)
-	json.NewEncoder(w).Encode(sr)
+	json.NewEncoder(w).Encode(response)
 }
 
 type OK struct {
 	SuccessResponse
 }
 
-func NewOK(metaData interface{}) OK {
+func NewOK(data map[string]interface{}) OK {
 	return OK{
-		SuccessResponse: NewSuccessResponse(true, STATUS_OK, metaData),
+		SuccessResponse: NewSuccessResponse(true, STATUS_OK, data),
 	}
 }
 
@@ -49,8 +58,8 @@ type CREATED struct {
 	SuccessResponse
 }
 
-func NewCREATED(metaData interface{}) CREATED {
+func NewCREATED(data map[string]interface{}) CREATED {
 	return CREATED{
-		SuccessResponse: NewSuccessResponse(true, STATUS_CREATED, metaData),
+		SuccessResponse: NewSuccessResponse(true, STATUS_CREATED, data),
 	}
 }
