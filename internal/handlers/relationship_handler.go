@@ -14,8 +14,8 @@ type RelationshipHandler struct {
 	relationshipService services.RelationshipService
 }
 
-func NewRelationshipHandler(relationshipService *services.RelationshipService) *RelationshipHandler {
-	return &RelationshipHandler{relationshipService: *relationshipService}
+func NewRelationshipHandler(relationshipService services.RelationshipService) *RelationshipHandler {
+	return &RelationshipHandler{relationshipService: relationshipService}
 }
 
 func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +28,7 @@ func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http
 
 	err = h.relationshipService.CreateFriend(context.Background(), &createFriendReq)
 	if err != nil {
-		responses.NewBadRequestError("User not found").Send(w)
+		responses.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 

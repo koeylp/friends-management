@@ -9,6 +9,7 @@ import (
 
 type UserService interface {
 	CreateUser(ctx context.Context, user *user.CreateUser) error
+	GetUserByEmail(ctx context.Context, email string) (*user.User, error)
 }
 
 type userServiceImpl struct {
@@ -26,4 +27,12 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, user *user.CreateUser)
 	}
 
 	return err
+}
+
+func (s *userServiceImpl) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
+	user, err := s.userRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }

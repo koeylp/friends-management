@@ -14,6 +14,7 @@ import (
 type RelationshipRepository interface {
 	// Friend
 	CreateFriend(ctx context.Context, requestor_id, target_id string) error
+	CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 	// GetFriends(ctx context.Context, email string) ([]string, error)
 	// GetCommonFriends(ctx context.Context, email_1, email_2 string) ([]string, error)
 	// IsFriendConnected(ctx context.Context, email_requestor, email_target string) (bool, error)
@@ -26,6 +27,7 @@ type RelationshipRepository interface {
 	// Subcribe(ctx context.Context, email_requestor, email_target string) (bool, error)
 
 	// GetReceiverUpdatesList(ctx context.Context, email_sender, text string) ([]string, error)
+
 }
 
 type relationshipRepositoryImpl struct {
@@ -47,4 +49,17 @@ func (repo *relationshipRepositoryImpl) CreateFriend(ctx context.Context, reques
 	}
 
 	return friend.Insert(ctx, repo.db, boil.Infer())
+}
+
+func (r *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS (
+		SELECT 1 FROM relationships 
+		WHERE (requestor_id = $1 AND target_id = $2) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
+	)`
+	err := r.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.FRIEND).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }
