@@ -9,13 +9,14 @@ import (
 	"github.com/koeylp/friends-management/constants"
 	"github.com/koeylp/friends-management/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type RelationshipRepository interface {
 	// Friend
 	CreateFriend(ctx context.Context, requestor_id, target_id string) error
 	CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error)
-	// GetFriends(ctx context.Context, email string) ([]string, error)
+	GetFriends(ctx context.Context, email string) ([]string, error)
 	// GetCommonFriends(ctx context.Context, email_1, email_2 string) ([]string, error)
 	// IsFriendConnected(ctx context.Context, email_requestor, email_target string) (bool, error)
 
@@ -62,4 +63,42 @@ func (r *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Context, 
 		return false, err
 	}
 	return exists, nil
+}
+
+func (repo *relationshipRepositoryImpl) GetFriends(ctx context.Context, email string) ([]string, error) {
+	user, err := models.Users(
+		models.UserWhere.Email.EQ(email),
+	).One(ctx, repo.db)
+	if err != nil {
+		return nil, err
+	}
+
+	relationships, err := models.Relationships(
+		qm.Where("(requestor_id = ? OR target_id = ?) AND relationship_type = ?", user.ID, user.ID, constants.FRIEND),
+	).All(ctx, repo.db)
+	if err != nil {
+		return nil, err
+	}
+
+	friendIDs := make([]string, 0)
+	for _, relationship := range relationships {
+		if relationship.RequestorID == user.ID {
+			friendIDs = append(friendIDs, relationship.TargetID)
+		} else {
+			friendIDs = append(friendIDs, relationship.RequestorID)
+		}
+	}
+
+	friends := make([]string, 0)
+	for _, friendID := range friendIDs {
+		friend, err := models.Users(
+			models.UserWhere.ID.EQ(friendID),
+		).One(ctx, repo.db)
+		if err != nil {
+			return nil, err
+		}
+		friends = append(friends, friend.Email)
+	}
+
+	return friends, nil
 }

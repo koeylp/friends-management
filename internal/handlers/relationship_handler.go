@@ -35,3 +35,31 @@ func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http
 	createdResponse := responses.NewCREATED("Create Friend Connection Successfully!", nil)
 	createdResponse.Send(w)
 }
+
+func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter, r *http.Request) {
+	var emailReq friend.EmailRequest
+	err := json.NewDecoder(r.Body).Decode(&emailReq)
+	if err != nil {
+		responses.NewBadRequestError("Invalid request payload: unable to decode JSON").Send(w)
+		return
+	}
+
+	if emailReq.Email == "" {
+		responses.NewBadRequestError("Email cannot be empty").Send(w)
+		return
+	}
+
+	friends, err := h.relationshipService.GetFriendListByEmail(context.Background(), emailReq.Email)
+	if err != nil {
+		responses.NewInternalServerError(err.Error()).Send(w)
+		return
+	}
+
+	friendList := friend.FriendList{
+		Friends: friends,
+		Count:   len(friends),
+	}
+
+	okResponse := responses.NewOK("Friend list retrieved successfully", friendList)
+	okResponse.Send(w)
+}

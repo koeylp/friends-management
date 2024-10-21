@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
@@ -11,6 +13,7 @@ import (
 
 type RelationshipService interface {
 	CreateFriend(ctx context.Context, friend *friend.CreateFriend) error
+	GetFriendListByEmail(ctx context.Context, email string) ([]string, error)
 }
 
 type relationshipServiceImpl struct {
@@ -37,6 +40,18 @@ func (s *relationshipServiceImpl) CreateFriend(ctx context.Context, friend *frie
 	}
 
 	return s.relationshipRepo.CreateFriend(ctx, users[0].ID, users[1].ID)
+}
+
+func (s *relationshipServiceImpl) GetFriendListByEmail(ctx context.Context, email string) ([]string, error) {
+	friends, err := s.relationshipRepo.GetFriends(ctx, email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("failed to retrieve friends: %w", err)
+	}
+
+	return friends, nil
 }
 
 func (s *relationshipServiceImpl) getUsersByEmails(ctx context.Context, emails []string) ([]*user.User, error) {
