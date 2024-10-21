@@ -63,3 +63,26 @@ func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter,
 	okResponse := responses.NewOK("Friend list retrieved successfully", friendList)
 	okResponse.Send(w)
 }
+
+func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *http.Request) {
+	var commonFriendsReq friend.CommonFriendListReq
+	err := json.NewDecoder(r.Body).Decode(&commonFriendsReq)
+	if err != nil || len(commonFriendsReq.Friends) != 2 {
+		responses.NewBadRequestError("Invalid request payload").Send(w)
+		return
+	}
+
+	commonList, err := h.relationshipService.GetCommonList(context.Background(), commonFriendsReq)
+	if err != nil {
+		responses.NewInternalServerError(err.Error()).Send(w)
+		return
+	}
+
+	friendList := friend.FriendList{
+		Friends: commonList,
+		Count:   len(commonList),
+	}
+
+	okResponse := responses.NewOK("Friend list retrieved successfully", friendList)
+	okResponse.Send(w)
+}

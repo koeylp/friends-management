@@ -14,6 +14,7 @@ import (
 type RelationshipService interface {
 	CreateFriend(ctx context.Context, friend *friend.CreateFriend) error
 	GetFriendListByEmail(ctx context.Context, email string) ([]string, error)
+	GetCommonList(ctx context.Context, friend friend.CommonFriendListReq) ([]string, error)
 }
 
 type relationshipServiceImpl struct {
@@ -64,4 +65,8 @@ func (s *relationshipServiceImpl) getUsersByEmails(ctx context.Context, emails [
 		}
 	}
 	return users, nil
+}
+
+func (s *relationshipServiceImpl) GetCommonList(ctx context.Context, friend friend.CommonFriendListReq) ([]string, error) {
+	panic("unimplemented")
 }
