@@ -6,7 +6,7 @@ import (
 )
 
 type SuccessResponse struct {
-	Message  string      `json:"message"`
+	Success  bool        `json:"success"`
 	Status   int         `json:"status"`
 	MetaData interface{} `json:"metaData,omitempty"`
 }
@@ -21,14 +21,9 @@ var ReasonStatusCodeSuccess = map[int]string{
 	STATUS_CREATED: "Created",
 }
 
-func NewSuccessResponse(message string, statusCode int, metaData interface{}) SuccessResponse {
-
-	if message == "" {
-		message = ReasonStatusCodeSuccess[statusCode]
-	}
-
+func NewSuccessResponse(success bool, statusCode int, metaData interface{}) SuccessResponse {
 	return SuccessResponse{
-		Message:  message,
+		Success:  success,
 		Status:   statusCode,
 		MetaData: metaData,
 	}
@@ -44,9 +39,9 @@ type OK struct {
 	SuccessResponse
 }
 
-func NewOK(message string, metaData interface{}) OK {
+func NewOK(metaData interface{}) OK {
 	return OK{
-		SuccessResponse: NewSuccessResponse(message, STATUS_OK, metaData),
+		SuccessResponse: NewSuccessResponse(true, STATUS_OK, metaData),
 	}
 }
 
@@ -54,8 +49,8 @@ type CREATED struct {
 	SuccessResponse
 }
 
-func NewCREATED(message string, metaData interface{}) CREATED {
+func NewCREATED(metaData interface{}) CREATED {
 	return CREATED{
-		SuccessResponse: NewSuccessResponse(message, STATUS_CREATED, metaData),
+		SuccessResponse: NewSuccessResponse(true, STATUS_CREATED, metaData),
 	}
 }

@@ -32,7 +32,7 @@ func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	createdResponse := responses.NewCREATED("Create Friend Connection Successfully!", nil)
+	createdResponse := responses.NewCREATED(nil)
 	createdResponse.Send(w)
 }
 
@@ -60,6 +60,6 @@ func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter,
 		Count:   len(friends),
 	}
 
-	okResponse := responses.NewOK("Friend list retrieved successfully", friendList)
+	okResponse := responses.NewOK(friendList)
 	okResponse.Send(w)
 }

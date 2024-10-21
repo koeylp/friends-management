@@ -32,6 +32,6 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	createdResponse := responses.NewCREATED("User created successfully", nil)
+	createdResponse := responses.NewCREATED(nil)
 	createdResponse.Send(w)
 }
