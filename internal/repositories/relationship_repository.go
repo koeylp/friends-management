@@ -19,16 +19,14 @@ type RelationshipRepository interface {
 	CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 	GetFriends(ctx context.Context, email string) ([]string, error)
 	GetCommonFriends(ctx context.Context, email_1, email_2 string) ([]string, error)
-	// IsFriendConnected(ctx context.Context, email_requestor, email_target string) (bool, error)
+
+	// Subcription
+	Subcribe(ctx context.Context, requestor_id, target_id string) error
+	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 
 	// // Block
 	// BlockUser(ctx context.Context, email_requestor, email_target string) (bool, error)
 	// IsUserBlocked(ctx context.Context, email_requestor, email_target string) (bool, error)
-
-	// // Subcription
-	// Subcribe(ctx context.Context, email_requestor, email_target string) (bool, error)
-
-	// GetReceiverUpdatesList(ctx context.Context, email_sender, text string) ([]string, error)
 
 }
 
@@ -53,13 +51,13 @@ func (repo *relationshipRepositoryImpl) CreateFriend(ctx context.Context, reques
 	return friend.Insert(ctx, repo.db, boil.Infer())
 }
 
-func (r *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error) {
+func (repo *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
 		SELECT 1 FROM relationships 
 		WHERE (requestor_id = $1 AND target_id = $2) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
 	)`
-	err := r.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.FRIEND).Scan(&exists)
+	err := repo.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.FRIEND).Scan(&exists)
 	if err != nil {
 		return false, err
 	}
@@ -162,4 +160,30 @@ func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, em
 	}
 
 	return commonFriends, nil
+}
+
+func (repo *relationshipRepositoryImpl) Subcribe(ctx context.Context, requestor_id string, target_id string) error {
+	subcription := models.Relationship{
+		ID:               uuid.New().String(),
+		RequestorID:      requestor_id,
+		TargetID:         target_id,
+		RelationshipType: constants.SUBSCRIBE,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	return subcription.Insert(ctx, repo.db, boil.Infer())
+}
+
+func (repo *relationshipRepositoryImpl) CheckSubcriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS (
+		SELECT 1 FROM relationships 
+		WHERE (requestor_id = $1 AND target_id = $2) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
+	)`
+	err := repo.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.SUBSCRIBE).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	return exists, nil
 }

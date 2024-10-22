@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
+	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/responses"
 	"github.com/koeylp/friends-management/internal/services"
+	"github.com/koeylp/friends-management/utils"
 )
 
 type RelationshipHandler struct {
@@ -85,4 +87,26 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 
 	okResponse := responses.NewOK(friendList)
 	okResponse.Send(w)
+}
+
+func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
+	var subcribeReq subcription.SubscribeRequest
+	if err := json.NewDecoder(r.Body).Decode(&subcribeReq); err != nil {
+		responses.NewBadRequestError("Invalid request payload").Send(w)
+		return
+	}
+	if err := subcription.ValidateSubscribeRequest(&subcribeReq); err != nil {
+		responses.NewBadRequestError(err.Error()).Send(w)
+		return
+	}
+
+	err := h.relationshipService.Subcribe(context.Background(), &subcribeReq)
+	// if err != nil {
+	// 	responses.NewInternalServerError(err.Error()).Send(w)
+	// 	return
+	// }
+	utils.HandleError(w, err)
+
+	// createdResponse := responses.NewCREATED(nil)
+	// createdResponse.Send(w)
 }
