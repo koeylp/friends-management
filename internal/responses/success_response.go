@@ -6,9 +6,9 @@ import (
 )
 
 type SuccessResponse struct {
-	Message  string      `json:"message"`
-	Status   int         `json:"status"`
-	MetaData interface{} `json:"metaData,omitempty"`
+	Success bool        `json:"success"`
+	Data    interface{} `json:"metaData,omitempty"`
+	Status  int         `json:"-"`
 }
 
 const (
@@ -16,21 +16,11 @@ const (
 	STATUS_CREATED = http.StatusCreated
 )
 
-var ReasonStatusCodeSuccess = map[int]string{
-	STATUS_OK:      "Success",
-	STATUS_CREATED: "Created",
-}
-
-func NewSuccessResponse(message string, statusCode int, metaData interface{}) SuccessResponse {
-
-	if message == "" {
-		message = ReasonStatusCodeSuccess[statusCode]
-	}
-
+func NewSuccessResponse(success bool, statusCode int, data interface{}) SuccessResponse {
 	return SuccessResponse{
-		Message:  message,
-		Status:   statusCode,
-		MetaData: metaData,
+		Success: success,
+		Status:  statusCode,
+		Data:    data,
 	}
 }
 
@@ -38,15 +28,27 @@ func (sr *SuccessResponse) Send(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(sr.Status)
 	json.NewEncoder(w).Encode(sr)
+
+	// response := make(interface{})
+
+	// response["count"] = len(sr.Data)
+	// for key, value := range sr.Data {
+	// 	response[key] = value
+	// }
+	// response["success"] = sr.Success
+
+	// w.Header().Set("Content-Type", "application/json")
+	// w.WriteHeader(sr.Status)
+	// json.NewEncoder(w).Encode(response)
 }
 
 type OK struct {
 	SuccessResponse
 }
 
-func NewOK(message string, metaData interface{}) OK {
+func NewOK(data interface{}) OK {
 	return OK{
-		SuccessResponse: NewSuccessResponse(message, STATUS_OK, metaData),
+		SuccessResponse: NewSuccessResponse(true, STATUS_OK, data),
 	}
 }
 
@@ -54,8 +56,8 @@ type CREATED struct {
 	SuccessResponse
 }
 
-func NewCREATED(message string, metaData interface{}) CREATED {
+func NewCREATED(data interface{}) CREATED {
 	return CREATED{
-		SuccessResponse: NewSuccessResponse(message, STATUS_CREATED, metaData),
+		SuccessResponse: NewSuccessResponse(true, STATUS_CREATED, data),
 	}
 }

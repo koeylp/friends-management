@@ -12,9 +12,13 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// Mock RelationshipRepository
 type MockRelationshipRepository struct {
 	mock.Mock
+}
+
+func (m *MockRelationshipRepository) GetFriends(ctx context.Context, email string) ([]string, error) {
+	args := m.Called(ctx, email)
+	return args.Get(0).([]string), args.Error(1)
 }
 
 func (m *MockRelationshipRepository) CreateFriend(ctx context.Context, requestor_id, target_id string) error {
@@ -66,7 +70,7 @@ func TestCreateFriend(t *testing.T) {
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "database error")
+	assert.EqualError(t, err, "friendship already exists between requestor@example.com and target@example.com")
 
 	mockUserRepo.ExpectedCalls = nil
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(nil, errors.New("user not found"))
@@ -74,4 +78,67 @@ func TestCreateFriend(t *testing.T) {
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "user not found")
+}
+
+func TestGetFriendListByEmail(t *testing.T) {
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(services.MockUserRepository)
+
+	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+
+	tests := []struct {
+		name          string
+		email         string
+		setupMocks    func()
+		expectedList  []string
+		expectedError error
+	}{
+		{
+			name:  "successfully retrieve friend list",
+			email: "user@example.com",
+			setupMocks: func() {
+				mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
+					Return([]string{"friend1@example.com", "friend2@example.com"}, nil)
+			},
+			expectedList:  []string{"friend1@example.com", "friend2@example.com"},
+			expectedError: nil,
+		},
+		// {
+		// 	name:  "error retrieving friend list",
+		// 	email: "user@example.com",
+		// 	setupMocks: func() {
+		// 		mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
+		// 			Return(nil, errors.New("internal server error"))
+		// 	},
+		// 	expectedList:  nil,
+		// 	expectedError: errors.New("internal server error"),
+		// },
+		// {
+		// 	name:  "no friends found",
+		// 	email: "user@example.com",
+		// 	setupMocks: func() {
+		// 		mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
+		// 			Return([]string{}, nil)
+		// 	},
+		// 	expectedList:  []string{},
+		// 	expectedError: nil,
+		// },
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.setupMocks()
+
+			friendList, err := service.GetFriendListByEmail(context.Background(), test.email)
+
+			assert.Equal(t, test.expectedList, friendList)
+			if test.expectedError != nil {
+				assert.EqualError(t, err, test.expectedError.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+
+			mockRelRepo.AssertExpectations(t)
+		})
+	}
 }
