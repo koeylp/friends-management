@@ -24,6 +24,7 @@ func RegisterRoutes(r *chi.Mux, userHandler *handlers.UserHandler, relationshipH
 		r.Route("/friends", func(r chi.Router) {
 			r.Post("/", relationshipHandler.CreateFriendHandler)
 			r.Post("/list", relationshipHandler.GetFriendListByEmailHandler)
+			r.Post("/common-list", relationshipHandler.GetCommonListHandler)
 		})
 	})
 }
