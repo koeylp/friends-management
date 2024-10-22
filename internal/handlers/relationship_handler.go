@@ -101,12 +101,11 @@ func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	err := h.relationshipService.Subcribe(context.Background(), &subcribeReq)
-	// if err != nil {
-	// 	responses.NewInternalServerError(err.Error()).Send(w)
-	// 	return
-	// }
-	utils.HandleError(w, err)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
 
-	// createdResponse := responses.NewCREATED(nil)
-	// createdResponse.Send(w)
+	createdResponse := responses.NewCREATED(nil)
+	createdResponse.Send(w)
 }

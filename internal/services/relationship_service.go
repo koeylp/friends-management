@@ -10,6 +10,7 @@ import (
 	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/repositories"
+	"github.com/koeylp/friends-management/internal/responses"
 )
 
 type RelationshipService interface {
@@ -81,7 +82,7 @@ func (s *relationshipServiceImpl) Subcribe(ctx context.Context, subscribeReq *su
 	requestor, err := s.userRepo.GetUserByEmail(ctx, subscribeReq.Requestor)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("requestor not found")
+			return responses.NewBadRequestError("requestor not found")
 		}
 		return fmt.Errorf("failed to retrieve requestor: %w", err)
 	}
@@ -89,18 +90,18 @@ func (s *relationshipServiceImpl) Subcribe(ctx context.Context, subscribeReq *su
 	target, err := s.userRepo.GetUserByEmail(ctx, subscribeReq.Target)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("target not found")
+			return responses.NewBadRequestError("target not found")
 		}
 		return fmt.Errorf("failed to retrieve target: %w", err)
 	}
 
 	exists, err := s.relationshipRepo.CheckSubcriptionExists(ctx, requestor.ID, target.ID)
 	if err != nil {
-		return fmt.Errorf("subcription already exists between %s and %s", requestor.Email, target.Email)
+		return fmt.Errorf("failed to check subcription exist: %w", err)
+	}
+	if exists {
+		return responses.NewBadRequestError("subscription already exists between " + requestor.Email + " and " + target.Email)
 	}
 
-	if exists {
-		return fmt.Errorf("subcription already exists between %s and %s", requestor.Email, target.Email)
-	}
 	return s.relationshipRepo.Subcribe(ctx, requestor.ID, target.ID)
 }

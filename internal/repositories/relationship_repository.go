@@ -179,11 +179,11 @@ func (repo *relationshipRepositoryImpl) CheckSubcriptionExists(ctx context.Conte
 	var exists bool
 	query := `SELECT EXISTS (
 		SELECT 1 FROM relationships 
-		WHERE (requestor_id = $1 AND target_id = $2) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
+		WHERE (requestor_id = $1 AND target_id = $2 AND relationship_type = $3) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
 	)`
 	err := repo.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.SUBSCRIBE).Scan(&exists)
 	if err != nil {
-		return false, err
+		return true, err
 	}
 	return exists, nil
 }
