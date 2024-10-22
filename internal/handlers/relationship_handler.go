@@ -72,7 +72,7 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	commonList, err := h.relationshipService.GetCommonList(context.Background(), commonFriendsReq)
+	commonList, err := h.relationshipService.GetCommonList(context.Background(), &commonFriendsReq)
 	if err != nil {
 		responses.NewInternalServerError(err.Error()).Send(w)
 		return
@@ -83,6 +83,6 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 		Count:   len(commonList),
 	}
 
-	okResponse := responses.NewOK("Friend list retrieved successfully", friendList)
+	okResponse := responses.NewOK(friendList)
 	okResponse.Send(w)
 }

@@ -31,6 +31,11 @@ func (m *MockRelationshipRepository) CheckFriendshipExists(ctx context.Context, 
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *MockRelationshipRepository) GetCommonFriends(ctx context.Context, email_1 string, email_2 string) ([]string, error) {
+	args := m.Called(ctx, email_1, email_2)
+	return args.Get(0).([]string), args.Error(1)
+}
+
 func TestCreateFriend(t *testing.T) {
 	ctx := context.Background()
 
@@ -141,4 +146,27 @@ func TestGetFriendListByEmail(t *testing.T) {
 			mockRelRepo.AssertExpectations(t)
 		})
 	}
+}
+
+func TestRelationshipService_GetCommonList(t *testing.T) {
+	ctx := context.Background()
+
+	req := &friend.CommonFriendListReq{
+		Friends: []string{"user@example.com", "user1@example.com"},
+	}
+
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(services.MockUserRepository)
+	mockService := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+
+	expectedCommonFriends := []string{"commonFriend1", "commonFriend2"}
+
+	mockRelRepo.On("GetCommonFriends", ctx, "user@example.com", "user1@example.com").Return(expectedCommonFriends, nil)
+
+	commonFriends, err := mockService.GetCommonList(ctx, req)
+
+	assert.NoError(t, err)
+	assert.Equal(t, expectedCommonFriends, commonFriends)
+
+	mockRelRepo.AssertExpectations(t)
 }
