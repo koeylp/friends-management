@@ -29,6 +29,9 @@ func RegisterRoutes(r *chi.Mux, userHandler *handlers.UserHandler, relationshipH
 		r.Route("/subcription", func(r chi.Router) {
 			r.Post("/", relationshipHandler.SubscribeHandler)
 		})
+		r.Route("/block", func(r chi.Router) {
+			r.Post("/", relationshipHandler.BlockUpdatesHandler)
+		})
 	})
 }
 

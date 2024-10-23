@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/dto/user"
@@ -18,6 +19,7 @@ type RelationshipService interface {
 	GetFriendListByEmail(ctx context.Context, email string) ([]string, error)
 	GetCommonList(ctx context.Context, friend *friend.CommonFriendListReq) ([]string, error)
 	Subcribe(ctx context.Context, subscribeReq *subcription.SubscribeRequest) error
+	BlockUpdates(ctx context.Context, blockReq *block.BlockRequest) error
 }
 
 type relationshipServiceImpl struct {
@@ -41,6 +43,15 @@ func (s *relationshipServiceImpl) CreateFriend(ctx context.Context, friend *frie
 
 	if exists {
 		return responses.NewBadRequestError("friendship already exists between " + users[0].Email + " and " + users[1].Email)
+	}
+
+	blockExists, err := s.relationshipRepo.CheckBlockExists(ctx, users[0].ID, users[1].ID)
+	if err != nil {
+		return fmt.Errorf("failed to check blocking updates exist: %w", err)
+	}
+
+	if blockExists {
+		return responses.NewBadRequestError("blocking updates exists between " + users[0].Email + " and " + users[1].Email)
 	}
 
 	return s.relationshipRepo.CreateFriend(ctx, users[0].ID, users[1].ID)
@@ -104,4 +115,32 @@ func (s *relationshipServiceImpl) Subcribe(ctx context.Context, subscribeReq *su
 	}
 
 	return s.relationshipRepo.Subcribe(ctx, requestor.ID, target.ID)
+}
+
+func (s *relationshipServiceImpl) BlockUpdates(ctx context.Context, blockReq *block.BlockRequest) error {
+	requestor, err := s.userRepo.GetUserByEmail(ctx, blockReq.Requestor)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return responses.NewBadRequestError("requestor not found")
+		}
+		return fmt.Errorf("failed to retrieve requestor: %w", err)
+	}
+
+	target, err := s.userRepo.GetUserByEmail(ctx, blockReq.Target)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return responses.NewBadRequestError("target not found")
+		}
+		return fmt.Errorf("failed to retrieve target: %w", err)
+	}
+
+	exists, err := s.relationshipRepo.CheckBlockExists(ctx, requestor.ID, target.ID)
+	if err != nil {
+		return fmt.Errorf("failed to check locking updates exist: %w", err)
+	}
+	if exists {
+		return responses.NewBadRequestError("blocking updates already exists between " + requestor.Email + " and " + target.Email)
+	}
+
+	return s.relationshipRepo.BlockUpdates(ctx, requestor.ID, target.ID)
 }

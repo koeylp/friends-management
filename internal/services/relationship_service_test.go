@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/dto/user"
@@ -15,6 +16,16 @@ import (
 
 type MockRelationshipRepository struct {
 	mock.Mock
+}
+
+func (m *MockRelationshipRepository) BlockUpdates(ctx context.Context, requestor_id string, target_id string) error {
+	args := m.Called(ctx, requestor_id, target_id)
+	return args.Error(0)
+}
+
+func (m *MockRelationshipRepository) CheckBlockExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+	args := m.Called(ctx, requestor_id, target_id)
+	return args.Bool(0), args.Error(1)
 }
 
 func (m *MockRelationshipRepository) CheckSubcriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
@@ -65,35 +76,78 @@ func TestCreateFriend(t *testing.T) {
 		{ID: "2", Email: "target@example.com"},
 	}
 
+	// Case 1: Friendship already exists
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(mockUsers[0], nil)
 	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(mockUsers[1], nil)
-
 	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(true, nil)
 
 	err := service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "400: friendship already exists between requestor@example.com and target@example.com")
 
+	// Reset expected calls
 	mockRelRepo.ExpectedCalls = nil
+
+	// Case 2: Successful friend creation (no block)
+	// mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
+	// mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, nil)
+	// mockRelRepo.On("CreateFriend", ctx, "1", "2").Return(nil)
+
+	// err = service.CreateFriend(ctx, input)
+	// assert.Nil(t, err)
+
+	// // Reset expected calls
+	// mockRelRepo.ExpectedCalls = nil
+
+	// Case 3: Block exists between the users
 	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
-	mockRelRepo.On("CreateFriend", ctx, "1", "2").Return(nil)
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(true, nil)
 
 	err = service.CreateFriend(ctx, input)
-	assert.Nil(t, err)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "400: blocking updates exists between requestor@example.com and target@example.com")
 
+	// Reset expected calls
 	mockRelRepo.ExpectedCalls = nil
+
+	// Case 4: Error while checking block existence
+	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, errors.New("database error"))
+
+	err = service.CreateFriend(ctx, input)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "failed to check blocking updates exist: database error")
+
+	// Reset expected calls
+	mockRelRepo.ExpectedCalls = nil
+
+	// Case 5: Error while checking friendship existence
 	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, errors.New("database error"))
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "failed to check friendship exist: database error")
 
+	// Reset expected calls for user repository
 	mockUserRepo.ExpectedCalls = nil
+
+	// Case 6: User not found (requestor)
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(nil, errors.New("user not found"))
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "400: user not found with email requestor@example.com")
+
+	// Reset expected calls for user repository
+	mockUserRepo.ExpectedCalls = nil
+
+	// Case 7: User not found (target)
+	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(mockUsers[0], nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(nil, errors.New("user not found"))
+
+	err = service.CreateFriend(ctx, input)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "400: user not found with email target@example.com")
 }
 
 func TestGetFriendListByEmail(t *testing.T) {
@@ -211,4 +265,66 @@ func TestSubcribe_Success(t *testing.T) {
 
 	mockUserRepo.AssertExpectations(t)
 	mockRelRepo.AssertExpectations(t)
+}
+
+func TestBlockUpdates(t *testing.T) {
+	ctx := context.Background()
+
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(services.MockUserRepository)
+
+	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+
+	inputEmails := &block.BlockRequest{
+		Requestor: "requestor@example.com",
+		Target:    "target@example.com",
+	}
+
+	mockUsers := []*user.User{
+		{ID: "1", Email: "requestor@example.com"},
+		{ID: "2", Email: "target@example.com"},
+	}
+
+	// Case 1: User not found (requestor)
+	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(nil, errors.New("user not found"))
+	err := service.BlockUpdates(ctx, inputEmails)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "failed to retrieve requestor: user not found")
+
+	// Reset expected calls
+	mockUserRepo.ExpectedCalls = nil
+
+	// Case 2: User not found (target)
+	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(mockUsers[0], nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(nil, errors.New("user not found"))
+	err = service.BlockUpdates(ctx, inputEmails)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "failed to retrieve target: user not found")
+
+	// Reset expected calls
+	mockUserRepo.ExpectedCalls = nil
+
+	// Case 3: Block relationship already exists
+	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(mockUsers[0], nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(mockUsers[1], nil)
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(true, nil)
+	err = service.BlockUpdates(ctx, inputEmails)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "400: blocking updates already exists between requestor@example.com and target@example.com")
+
+	// Reset expected calls
+	mockRelRepo.ExpectedCalls = nil
+
+	// Case 4: Successful block
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, nil)
+	mockRelRepo.On("BlockUpdates", ctx, "1", "2").Return(nil)
+	err = service.BlockUpdates(ctx, inputEmails)
+	assert.Nil(t, err)
+
+	// Case 5: Error while checking block existence
+	mockRelRepo.ExpectedCalls = nil
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, errors.New("database error")) // Mock `CheckBlockExists`
+	err = service.BlockUpdates(ctx, inputEmails)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "failed to check locking updates exist: database error")
 }
