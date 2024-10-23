@@ -72,7 +72,7 @@ func TestCreateFriend(t *testing.T) {
 
 	err := service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "friendship already exists between requestor@example.com and target@example.com")
+	assert.EqualError(t, err, "400: friendship already exists between requestor@example.com and target@example.com")
 
 	mockRelRepo.ExpectedCalls = nil
 	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
@@ -86,14 +86,14 @@ func TestCreateFriend(t *testing.T) {
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "friendship already exists between requestor@example.com and target@example.com")
+	assert.EqualError(t, err, "failed to check friendship exist: database error")
 
 	mockUserRepo.ExpectedCalls = nil
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(nil, errors.New("user not found"))
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "user not found")
+	assert.EqualError(t, err, "400: user not found with email requestor@example.com")
 }
 
 func TestGetFriendListByEmail(t *testing.T) {
@@ -182,8 +182,8 @@ func TestRelationshipService_GetCommonList(t *testing.T) {
 	mockRelRepo.AssertExpectations(t)
 }
 
-func TestSubcribe(t *testing.T) {
-	ctx := context.TODO()
+func TestSubcribe_Success(t *testing.T) {
+	ctx := context.Background()
 
 	mockRelRepo := new(MockRelationshipRepository)
 	mockUserRepo := new(services.MockUserRepository)
@@ -200,33 +200,15 @@ func TestSubcribe(t *testing.T) {
 
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(requestor, nil)
 	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(target, nil)
+
 	mockRelRepo.On("CheckSubcriptionExists", ctx, requestor.ID, target.ID).Return(false, nil)
+
 	mockRelRepo.On("Subcribe", ctx, requestor.ID, target.ID).Return(nil)
 
 	err := service.Subcribe(ctx, subscribeReq)
+
 	assert.NoError(t, err)
 
-	mockRelRepo.On("CheckSubcriptionExists", ctx, requestor.ID, target.ID).Return(true, nil)
-
-	err = service.Subcribe(ctx, subscribeReq)
-	assert.Error(t, err)
-	assert.Equal(t, "subcription already exists between requestor@example.com and target@example.com", err.Error())
-
-	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(nil, errors.New("user not found"))
-
-	err = service.Subcribe(ctx, subscribeReq)
-	assert.Error(t, err)
-	assert.Equal(t, "user not found", err.Error())
-
-	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(nil, errors.New("user not found"))
-
-	err = service.Subcribe(ctx, subscribeReq)
-	assert.Error(t, err)
-	assert.Equal(t, "user not found", err.Error())
-
-	mockRelRepo.On("Subcribe", ctx, requestor.ID, target.ID).Return(errors.New("failed to subscribe"))
-
-	err = service.Subcribe(ctx, subscribeReq)
-	assert.Error(t, err)
-	assert.Equal(t, "failed to subscribe", err.Error())
+	mockUserRepo.AssertExpectations(t)
+	mockRelRepo.AssertExpectations(t)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/koeylp/friends-management/constants"
 	"github.com/koeylp/friends-management/internal/models"
+	"github.com/koeylp/friends-management/internal/responses"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
@@ -105,12 +106,12 @@ func (repo *relationshipRepositoryImpl) GetFriends(ctx context.Context, email st
 func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, email_1 string, email_2 string) ([]string, error) {
 	user1, err := models.Users(qm.Where("email=?", email_1)).One(ctx, repo.db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user1 by email: %w", err)
+		return nil, responses.NewBadRequestError("user not found with email " + email_1)
 	}
 
 	user2, err := models.Users(qm.Where("email=?", email_2)).One(ctx, repo.db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find user2 by email: %w", err)
+		return nil, responses.NewBadRequestError("user not found with email " + email_2)
 	}
 
 	query := `

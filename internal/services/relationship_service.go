@@ -36,11 +36,11 @@ func (s *relationshipServiceImpl) CreateFriend(ctx context.Context, friend *frie
 	}
 	exists, err := s.relationshipRepo.CheckFriendshipExists(ctx, users[0].ID, users[1].ID)
 	if err != nil {
-		return fmt.Errorf("friendship already exists between %s and %s", users[0].Email, users[1].Email)
+		return fmt.Errorf("failed to check friendship exist: %w", err)
 	}
 
 	if exists {
-		return fmt.Errorf("friendship already exists between %s and %s", users[0].Email, users[1].Email)
+		return responses.NewBadRequestError("friendship already exists between " + users[0].Email + " and " + users[1].Email)
 	}
 
 	return s.relationshipRepo.CreateFriend(ctx, users[0].ID, users[1].ID)
@@ -64,7 +64,7 @@ func (s *relationshipServiceImpl) getUsersByEmails(ctx context.Context, emails [
 	for i, email := range emails {
 		users[i], err = s.userRepo.GetUserByEmail(ctx, email)
 		if err != nil {
-			return nil, fmt.Errorf("user not found")
+			return nil, responses.NewBadRequestError("user not found with email " + email)
 		}
 	}
 	return users, nil
