@@ -20,6 +20,7 @@ type RelationshipService interface {
 	GetCommonList(ctx context.Context, friend *friend.CommonFriendListReq) ([]string, error)
 	Subcribe(ctx context.Context, subscribeReq *subcription.SubscribeRequest) error
 	BlockUpdates(ctx context.Context, blockReq *block.BlockRequest) error
+	GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error)
 }
 
 type relationshipServiceImpl struct {
@@ -143,4 +144,8 @@ func (s *relationshipServiceImpl) BlockUpdates(ctx context.Context, blockReq *bl
 	}
 
 	return s.relationshipRepo.BlockUpdates(ctx, requestor.ID, target.ID)
+}
+
+func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error) {
+	panic("unimplemented")
 }

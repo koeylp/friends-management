@@ -323,8 +323,8 @@ func TestBlockUpdates(t *testing.T) {
 
 	// Case 5: Error while checking block existence
 	mockRelRepo.ExpectedCalls = nil
-	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, errors.New("database error")) // Mock `CheckBlockExists`
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, errors.New("database error"))
 	err = service.BlockUpdates(ctx, inputEmails)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "failed to check locking updates exist: database error")
+	assert.EqualError(t, err, "failed to check subcription exist: database error")
 }
