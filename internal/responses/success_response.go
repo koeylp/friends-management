@@ -26,19 +26,28 @@ func NewSuccessResponse(success bool, statusCode int, data map[string]interface{
 }
 
 func (sr *SuccessResponse) Send(w http.ResponseWriter) {
-	// w.Header().Set("Content-Type", "application/json")
-	// w.WriteHeader(sr.Status)
-	// json.NewEncoder(w).Encode(sr)
-
 	response := make(map[string]interface{})
 
-	response["count"] = len(sr.Data)
 	for key, value := range sr.Data {
 		if reflect.ValueOf(value).IsNil() {
 			response[key] = []interface{}{}
+			response["count"] = 0
 			break
 		}
-		response[key] = value
+
+		switch reflect.TypeOf(value).Kind() {
+		case reflect.Slice, reflect.Array:
+			slice := reflect.ValueOf(value)
+			convertedSlice := make([]interface{}, slice.Len())
+			for i := 0; i < slice.Len(); i++ {
+				convertedSlice[i] = slice.Index(i).Interface()
+			}
+
+			response[key] = convertedSlice
+			response["count"] = len(convertedSlice)
+		default:
+			response[key] = value
+		}
 	}
 
 	response["success"] = sr.Success
