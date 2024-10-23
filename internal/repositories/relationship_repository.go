@@ -26,9 +26,8 @@ type RelationshipRepository interface {
 	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 
 	// // Block
-	// BlockUser(ctx context.Context, email_requestor, email_target string) (bool, error)
-	// IsUserBlocked(ctx context.Context, email_requestor, email_target string) (bool, error)
-
+	BlockUpdates(ctx context.Context, requestor_id, target_id string) error
+	CheckBlockExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 }
 
 type relationshipRepositoryImpl struct {
@@ -56,7 +55,7 @@ func (repo *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Contex
 	var exists bool
 	query := `SELECT EXISTS (
 		SELECT 1 FROM relationships 
-		WHERE (requestor_id = $1 AND target_id = $2) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
+		WHERE (requestor_id = $1 AND target_id = $2 AND relationship_type = $3) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
 	)`
 	err := repo.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.FRIEND).Scan(&exists)
 	if err != nil {
@@ -187,4 +186,30 @@ func (repo *relationshipRepositoryImpl) CheckSubcriptionExists(ctx context.Conte
 		return true, err
 	}
 	return exists, nil
+}
+
+func (repo *relationshipRepositoryImpl) CheckBlockExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+	var exists bool
+	query := `SELECT EXISTS (
+		SELECT 1 FROM relationships 
+		WHERE (requestor_id = $1 AND target_id = $2 AND relationship_type = $3) OR (requestor_id = $2 AND target_id = $1 AND relationship_type = $3)
+	)`
+	err := repo.db.QueryRowContext(ctx, query, requestor_id, target_id, constants.BLOCK).Scan(&exists)
+	if err != nil {
+		return true, err
+	}
+	return exists, nil
+}
+
+func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, requestor_id string, target_id string) error {
+	block := models.Relationship{
+		ID:               uuid.New().String(),
+		RequestorID:      requestor_id,
+		TargetID:         target_id,
+		RelationshipType: constants.BLOCK,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+
+	return block.Insert(ctx, repo.db, boil.Infer())
 }

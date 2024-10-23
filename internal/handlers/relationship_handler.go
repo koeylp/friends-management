@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/responses"
@@ -95,6 +96,28 @@ func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	err := h.relationshipService.Subcribe(context.Background(), &subcribeReq)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+
+	createdResponse := responses.NewCREATED(nil)
+	createdResponse.Send(w)
+}
+
+func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http.Request) {
+	var blockReq block.BlockRequest
+	if err := json.NewDecoder(r.Body).Decode(&blockReq); err != nil || blockReq.Requestor == blockReq.Target {
+		responses.NewBadRequestError("Invalid request payload").Send(w)
+		return
+	}
+
+	if err := block.ValidateBlockRequest(&blockReq); err != nil {
+		responses.NewBadRequestError(err.Error()).Send(w)
+		return
+	}
+
+	err := h.relationshipService.BlockUpdates(context.Background(), &blockReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
