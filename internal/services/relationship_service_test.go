@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
+	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/services"
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,16 @@ import (
 
 type MockRelationshipRepository struct {
 	mock.Mock
+}
+
+func (m *MockRelationshipRepository) CheckSubcriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+	args := m.Called(ctx, requestor_id, target_id)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockRelationshipRepository) Subcribe(ctx context.Context, requestor_id string, target_id string) error {
+	args := m.Called(ctx, requestor_id, target_id)
+	return args.Error(0)
 }
 
 func (m *MockRelationshipRepository) GetFriends(ctx context.Context, email string) ([]string, error) {
@@ -61,7 +72,7 @@ func TestCreateFriend(t *testing.T) {
 
 	err := service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "friendship already exists between requestor@example.com and target@example.com")
+	assert.EqualError(t, err, "400: friendship already exists between requestor@example.com and target@example.com")
 
 	mockRelRepo.ExpectedCalls = nil
 	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
@@ -75,14 +86,14 @@ func TestCreateFriend(t *testing.T) {
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "friendship already exists between requestor@example.com and target@example.com")
+	assert.EqualError(t, err, "failed to check friendship exist: database error")
 
 	mockUserRepo.ExpectedCalls = nil
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(nil, errors.New("user not found"))
 
 	err = service.CreateFriend(ctx, input)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "user not found")
+	assert.EqualError(t, err, "400: user not found with email requestor@example.com")
 }
 
 func TestGetFriendListByEmail(t *testing.T) {
@@ -168,5 +179,36 @@ func TestRelationshipService_GetCommonList(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, expectedCommonFriends, commonFriends)
 
+	mockRelRepo.AssertExpectations(t)
+}
+
+func TestSubcribe_Success(t *testing.T) {
+	ctx := context.Background()
+
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(services.MockUserRepository)
+
+	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+
+	requestor := &user.User{ID: "123", Email: "requestor@example.com"}
+	target := &user.User{ID: "456", Email: "target@example.com"}
+
+	subscribeReq := &subcription.SubscribeRequest{
+		Requestor: "requestor@example.com",
+		Target:    "target@example.com",
+	}
+
+	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(requestor, nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(target, nil)
+
+	mockRelRepo.On("CheckSubcriptionExists", ctx, requestor.ID, target.ID).Return(false, nil)
+
+	mockRelRepo.On("Subcribe", ctx, requestor.ID, target.ID).Return(nil)
+
+	err := service.Subcribe(ctx, subscribeReq)
+
+	assert.NoError(t, err)
+
+	mockUserRepo.AssertExpectations(t)
 	mockRelRepo.AssertExpectations(t)
 }

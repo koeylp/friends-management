@@ -11,7 +11,6 @@ import (
 const (
 	StatusForbidden    = http.StatusForbidden
 	StatusNotFound     = http.StatusNotFound
-	StatusConflict     = http.StatusConflict
 	StatusBadRequest   = http.StatusBadRequest
 	StatusUnauthorized = http.StatusUnauthorized
 	StatusInternal     = http.StatusInternalServerError
@@ -20,7 +19,6 @@ const (
 var (
 	ReasonBadRequest   = "Bad Request"
 	ReasonNotFound     = "Not Found"
-	ReasonConflict     = "Your Account Had Been Login From Another Location!"
 	ReasonForbidden    = "Access Denied"
 	ReasonUnauthorized = "Unauthorized"
 	ReasonInternal     = "Internal Server Error"
@@ -28,7 +26,7 @@ var (
 
 type ErrorResponse struct {
 	Message string
-	Status  int
+	Status  int `json:"-"`
 	Time    time.Time
 }
 
@@ -50,17 +48,6 @@ func (e *ErrorResponse) Send(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(e.Status)
 	json.NewEncoder(w).Encode(e)
-}
-
-type ConflictRequestError struct {
-	*ErrorResponse
-}
-
-func NewConflictRequestError(message string) *ConflictRequestError {
-	if message == "" {
-		message = ReasonConflict
-	}
-	return &ConflictRequestError{NewErrorResponse(message, StatusConflict)}
 }
 
 type BadRequestError struct {
