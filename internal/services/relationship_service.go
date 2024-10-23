@@ -12,6 +12,7 @@ import (
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/responses"
+	"github.com/koeylp/friends-management/utils"
 )
 
 type RelationshipService interface {
@@ -147,5 +148,22 @@ func (s *relationshipServiceImpl) BlockUpdates(ctx context.Context, blockReq *bl
 }
 
 func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error) {
-	panic("unimplemented")
+	sender, err := s.userRepo.GetUserByEmail(ctx, recipientReq.Sender)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, responses.NewBadRequestError("sender not found")
+		}
+		return nil, fmt.Errorf("failed to retrieve requestor: %w", err)
+	}
+	emails := utils.GetEmailFromText(recipientReq.Text)
+	users, err := s.getUsersByEmails(ctx, emails)
+	if err != nil {
+		return nil, err
+	}
+
+	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, users, sender.ID)
+	if err != nil {
+		return nil, err
+	}
+	return recipients, nil
 }

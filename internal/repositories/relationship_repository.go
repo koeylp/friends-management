@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/koeylp/friends-management/constants"
+	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/models"
 	"github.com/koeylp/friends-management/internal/responses"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -24,6 +25,7 @@ type RelationshipRepository interface {
 	// Subcription
 	Subcribe(ctx context.Context, requestor_id, target_id string) error
 	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
+	GetUpdatableEmailAddresses(ctx context.Context, users []*user.User, sender_id string) ([]string, error)
 
 	// // Block
 	BlockUpdates(ctx context.Context, requestor_id, target_id string) error
@@ -212,4 +214,30 @@ func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, reques
 	}
 
 	return block.Insert(ctx, repo.db, boil.Infer())
+}
+
+func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, users []*user.User, sender_id string) ([]string, error) {
+	var emails []string
+	query := `SELECT * FROM relationships 
+		WHERE (requestor_id = $1 AND relationship_type = $2) OR (target_id = $1 AND relationship_type = $2)`
+	// OR (requestor_id = $1 AND target_id = $2 AND relationship_type = $4)
+	// OR (requestor_id = $1 AND target_id = $2 AND relationship_type = $5)
+	rows, err := repo.db.QueryContext(ctx, query, sender_id, constants.FRIEND)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query recipients: %w", err)
+	}
+	defer rows.Close()
+	fmt.Println(rows)
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("failed to scan email: %w", err)
+		}
+		emails = append(emails, email)
+	}
+
+	for _, user := range users {
+		emails = append(emails, user.Email)
+	}
+	return emails, nil
 }

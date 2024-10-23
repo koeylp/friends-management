@@ -139,4 +139,12 @@ func (h *RelationshipHandler) GetUpdatableEmailAddressesHandler(w http.ResponseW
 		return
 	}
 
+	recipients, err := h.relationshipService.GetUpdatableEmailAddresses(context.Background(), &recipientsReq)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+
+	okResponse := responses.NewOK(map[string]interface{}{"recipients": recipients})
+	okResponse.Send(w)
 }
