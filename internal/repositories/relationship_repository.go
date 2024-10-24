@@ -4,14 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/koeylp/friends-management/constants"
+	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/models"
-	"github.com/koeylp/friends-management/internal/responses"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
@@ -21,12 +20,12 @@ type RelationshipRepository interface {
 	CreateFriend(ctx context.Context, requestor_id, target_id string) error
 	CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 	GetFriends(ctx context.Context, email string) ([]string, error)
-	GetCommonFriends(ctx context.Context, email_1, email_2 string) ([]string, error)
+	GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error)
 
 	// Subcription
 	Subcribe(ctx context.Context, requestor_id, target_id string) error
 	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
-	GetUpdatableEmailAddresses(ctx context.Context, text, sender_id string) ([]string, error)
+	GetUpdatableEmailAddresses(ctx context.Context, mentionedEmails []string, sender_id string) ([]string, error)
 
 	// // Block
 	BlockUpdates(ctx context.Context, requestor_id, target_id string) error
@@ -105,17 +104,7 @@ func (repo *relationshipRepositoryImpl) GetFriends(ctx context.Context, email st
 	return friends, nil
 }
 
-func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, email_1 string, email_2 string) ([]string, error) {
-	user1, err := models.Users(qm.Where("email=?", email_1)).One(ctx, repo.db)
-	if err != nil {
-		return nil, responses.NewBadRequestError("user not found with email " + email_1)
-	}
-
-	user2, err := models.Users(qm.Where("email=?", email_2)).One(ctx, repo.db)
-	if err != nil {
-		return nil, responses.NewBadRequestError("user not found with email " + email_2)
-	}
-
+func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error) {
 	query := `
     WITH user1_friends AS (
         SELECT CASE
@@ -143,7 +132,7 @@ func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, em
     ON u1.friend_id = u.id;
     `
 
-	rows, err := repo.db.QueryContext(ctx, query, user1.ID, user2.ID, constants.FRIEND)
+	rows, err := repo.db.QueryContext(ctx, query, users[0].ID, users[1].ID, constants.FRIEND)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query common friends: %w", err)
 	}
@@ -217,8 +206,7 @@ func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, reques
 	return block.Insert(ctx, repo.db, boil.Infer())
 }
 
-func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, text, sender_id string) ([]string, error) {
-	mentionedEmails := extractMentionedEmails(text)
+func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, mentionedEmails []string, sender_id string) ([]string, error) {
 	emailInterfaces := make([]interface{}, len(mentionedEmails))
 	for i, email := range mentionedEmails {
 		emailInterfaces[i] = email
@@ -229,8 +217,8 @@ func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.C
 		qm.Distinct("users.email"),
 		qm.Where("users.id != ?", sender_id),
 		qm.LeftOuterJoin("relationships AS r1 ON (r1.requestor_id = users.id AND r1.target_id = ?) OR (r1.target_id = users.id AND r1.requestor_id = ?)", sender_id, sender_id),
-		qm.LeftOuterJoin("relationships AS r2 ON r2.requestor_id = users.id AND r2.target_id = ? AND r2.relationship_type = 'Subscribe'", sender_id),
-		qm.Where("users.id NOT IN (SELECT target_id FROM relationships WHERE requestor_id = ? AND relationship_type = 'block')", sender_id),
+		qm.LeftOuterJoin("relationships AS r2 ON r2.requestor_id = users.id AND r2.target_id = ? AND r2.relationship_type = ?", sender_id, constants.SUBSCRIBE),
+		qm.Where("users.id NOT IN (SELECT target_id FROM relationships WHERE requestor_id = ? AND relationship_type = ?)", sender_id, constants.BLOCK),
 		qm.Where("r1.relationship_type = 'Friend' OR r2.relationship_type = 'Subscribe' OR users.email IN ("+strings.Repeat("?,", len(mentionedEmails)-1)+"?)", emailInterfaces...),
 	).All(ctx, repo.db)
 
@@ -242,22 +230,5 @@ func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.C
 	for _, user := range recipients {
 		emails = append(emails, user.Email)
 	}
-	fmt.Println(emails)
-
 	return emails, nil
-}
-
-func extractMentionedEmails(text string) []string {
-	emailRegex := `([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})`
-	re := regexp.MustCompile(emailRegex)
-	matches := re.FindAllString(text, -1)
-	emailSet := make(map[string]struct{})
-	for _, email := range matches {
-		emailSet[email] = struct{}{}
-	}
-	uniqueEmails := make([]string, 0, len(emailSet))
-	for email := range emailSet {
-		uniqueEmails = append(uniqueEmails, email)
-	}
-	return uniqueEmails
 }

@@ -26,6 +26,10 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
+	if err := user.ValidateCreateUserRequest(&createUserReq); err != nil {
+		responses.NewBadRequestError(err.Error()).Send(w)
+		return
+	}
 	err = h.userService.CreateUser(context.Background(), &createUserReq)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)

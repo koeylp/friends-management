@@ -2,25 +2,30 @@ package services_test
 
 import (
 	"context"
+	"database/sql/driver"
 	"errors"
+	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
 	"github.com/koeylp/friends-management/internal/dto/user"
+	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 type MockRelationshipRepository struct {
 	mock.Mock
 }
 
-// GetUpdatableEmailAddresses implements repositories.RelationshipRepository.
-func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, text, sender_id string) ([]string, error) {
-	panic("unimplemented")
+func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, mentionedEmails []string, sender_id string) ([]string, error) {
+	args := m.Called(ctx, mentionedEmails, sender_id)
+	return args.Get(0).([]string), args.Error(1)
 }
 
 func (m *MockRelationshipRepository) BlockUpdates(ctx context.Context, requestor_id string, target_id string) error {
@@ -58,8 +63,8 @@ func (m *MockRelationshipRepository) CheckFriendshipExists(ctx context.Context, 
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockRelationshipRepository) GetCommonFriends(ctx context.Context, email_1 string, email_2 string) ([]string, error) {
-	args := m.Called(ctx, email_1, email_2)
+func (m *MockRelationshipRepository) GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error) {
+	args := m.Called(ctx, users)
 	return args.Get(0).([]string), args.Error(1)
 }
 
@@ -220,18 +225,24 @@ func TestGetFriendListByEmail(t *testing.T) {
 
 func TestRelationshipService_GetCommonList(t *testing.T) {
 	ctx := context.Background()
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(services.MockUserRepository)
+	mockService := services.NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	req := &friend.CommonFriendListReq{
 		Friends: []string{"user@example.com", "user1@example.com"},
 	}
 
-	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
-	mockService := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	users := []*user.User{
+		{ID: "1", Email: "user@example.com"},
+		{ID: "2", Email: "user1@example.com"},
+	}
+	mockUserRepo.On("GetUserByEmail", ctx, "user@example.com").Return(users[0], nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "user1@example.com").Return(users[1], nil)
 
-	expectedCommonFriends := []string{"commonFriend1", "commonFriend2"}
+	expectedCommonFriends := []string{"common.friend1@example.com", "common.friend2@example.com"}
 
-	mockRelRepo.On("GetCommonFriends", ctx, "user@example.com", "user1@example.com").Return(expectedCommonFriends, nil)
+	mockRelRepo.On("GetCommonFriends", ctx, users).Return(expectedCommonFriends, nil)
 
 	commonFriends, err := mockService.GetCommonList(ctx, req)
 
@@ -331,5 +342,78 @@ func TestBlockUpdates(t *testing.T) {
 	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, errors.New("database error"))
 	err = service.BlockUpdates(ctx, inputEmails)
 	assert.NotNil(t, err)
-	assert.EqualError(t, err, "failed to check subcription exist: database error")
+	assert.EqualError(t, err, "failed to check blocking updates exist: database error")
+}
+
+func TestGetUpdatableEmailAddresses(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := repositories.NewRelationshipRepository(db)
+
+	ctx := context.Background()
+	senderID := "123"
+	mentionedEmails := []string{"email1@example.com", "email2@example.com"} // Example non-empty slice
+
+	// Create placeholders for the IN clause
+	placeholders := strings.Repeat("?,", len(mentionedEmails)-1) + "?"
+
+	// SQL query with placeholders
+	query := `
+		SELECT DISTINCT users.email
+		FROM users
+		LEFT JOIN relationships AS r1
+			ON (r1.requestor_id = users.id AND r1.target_id = $1)
+			OR (r1.target_id = users.id AND r1.requestor_id = $2)
+		LEFT JOIN relationships AS r2
+			ON r2.requestor_id = users.id
+			AND r2.target_id = $3
+			AND r2.relationship_type = $4
+		WHERE users.id != $5
+		AND users.id NOT IN (
+			SELECT target_id FROM relationships WHERE requestor_id = $6 AND relationship_type = $7
+		)
+		AND users.email IN (` + placeholders + `)`
+
+	// Mock results
+	rows := sqlmock.NewRows([]string{"email"}).
+		AddRow("email1@example.com").
+		AddRow("email3@example.com")
+
+	// Prepare arguments
+	args := []driver.Value{
+		senderID, senderID, senderID, "Subscribe", senderID, senderID, "Block",
+	}
+	for _, email := range mentionedEmails {
+		args = append(args, email)
+	}
+
+	// Expectation for the query
+	mock.ExpectQuery(query).
+		WithArgs(args...).
+		WillReturnRows(rows)
+
+	// Call the method
+	emails, err := repo.GetUpdatableEmailAddresses(ctx, mentionedEmails, senderID)
+
+	// Validate the result
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"email1@example.com", "email3@example.com"}, emails)
+
+	// Mock an error case
+	mock.ExpectQuery(query).
+		WithArgs(args...).
+		WillReturnError(errors.New("db error"))
+
+	// Call again, expecting an error
+	emails, err = repo.GetUpdatableEmailAddresses(ctx, mentionedEmails, senderID)
+
+	// Validate error case
+	assert.Error(t, err)
+	assert.Nil(t, emails)
+
+	// Ensure all expectations are met
+	err = mock.ExpectationsWereMet()
+	assert.NoError(t, err)
 }
