@@ -22,7 +22,7 @@ A RESTful API for managing friend relationships, built using Go and PostgreSQL. 
 ## Getting Started
 
 ### Prerequisites
-- Go 1.18 or later
+- Go 1.23.2 or later
 - PostgreSQL
 - Docker (optional, for running PostgreSQL in a container)
 
