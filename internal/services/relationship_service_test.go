@@ -23,8 +23,8 @@ type MockRelationshipRepository struct {
 	mock.Mock
 }
 
-func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, mentionedEmails []string, sender_id string) ([]string, error) {
-	args := m.Called(ctx, mentionedEmails, sender_id)
+func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error) {
+	args := m.Called(ctx, sender_id)
 	return args.Get(0).([]string), args.Error(1)
 }
 
@@ -395,7 +395,7 @@ func TestGetUpdatableEmailAddresses(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Call the method
-	emails, err := repo.GetUpdatableEmailAddresses(ctx, mentionedEmails, senderID)
+	emails, err := repo.GetUpdatableEmailAddresses(ctx, senderID)
 
 	// Validate the result
 	assert.NoError(t, err)
@@ -407,7 +407,7 @@ func TestGetUpdatableEmailAddresses(t *testing.T) {
 		WillReturnError(errors.New("db error"))
 
 	// Call again, expecting an error
-	emails, err = repo.GetUpdatableEmailAddresses(ctx, mentionedEmails, senderID)
+	emails, err = repo.GetUpdatableEmailAddresses(ctx, senderID)
 
 	// Validate error case
 	assert.Error(t, err)

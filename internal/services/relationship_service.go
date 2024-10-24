@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
@@ -160,9 +161,18 @@ func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context
 		return nil, fmt.Errorf("failed to retrieve requestor: %w", err)
 	}
 	mentionedEmails := utils.GetEmailFromText(recipientReq.Text)
-	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, mentionedEmails, sender.ID)
+	users, err := s.getUsersByEmails(ctx, mentionedEmails)
 	if err != nil {
 		return nil, err
+	}
+	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, sender.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		if !slices.Contains(recipients, user.Email) {
+			recipients = append(recipients, user.Email)
+		}
 	}
 	return recipients, nil
 }
