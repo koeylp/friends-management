@@ -12,7 +12,6 @@ import (
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/responses"
-	"github.com/koeylp/friends-management/utils"
 )
 
 type RelationshipService interface {
@@ -155,13 +154,13 @@ func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context
 		}
 		return nil, fmt.Errorf("failed to retrieve requestor: %w", err)
 	}
-	emails := utils.GetEmailFromText(recipientReq.Text)
-	users, err := s.getUsersByEmails(ctx, emails)
-	if err != nil {
-		return nil, err
-	}
+	// emails := utils.GetEmailFromText(recipientReq.Text)
+	// users, err := s.getUsersByEmails(ctx, emails)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, users, sender.ID)
+	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, recipientReq.Text, sender.ID)
 	if err != nil {
 		return nil, err
 	}

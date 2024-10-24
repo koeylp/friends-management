@@ -19,7 +19,7 @@ type MockRelationshipRepository struct {
 }
 
 // GetUpdatableEmailAddresses implements repositories.RelationshipRepository.
-func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, users []*user.User, sender_id string) ([]string, error) {
+func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, text, sender_id string) ([]string, error) {
 	panic("unimplemented")
 }
 

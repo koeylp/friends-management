@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/koeylp/friends-management/constants"
-	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/models"
 	"github.com/koeylp/friends-management/internal/responses"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -25,7 +26,7 @@ type RelationshipRepository interface {
 	// Subcription
 	Subcribe(ctx context.Context, requestor_id, target_id string) error
 	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
-	GetUpdatableEmailAddresses(ctx context.Context, users []*user.User, sender_id string) ([]string, error)
+	GetUpdatableEmailAddresses(ctx context.Context, text, sender_id string) ([]string, error)
 
 	// // Block
 	BlockUpdates(ctx context.Context, requestor_id, target_id string) error
@@ -216,28 +217,47 @@ func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, reques
 	return block.Insert(ctx, repo.db, boil.Infer())
 }
 
-func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, users []*user.User, sender_id string) ([]string, error) {
-	var emails []string
-	query := `SELECT * FROM relationships 
-		WHERE (requestor_id = $1 AND relationship_type = $2) OR (target_id = $1 AND relationship_type = $2)`
-	// OR (requestor_id = $1 AND target_id = $2 AND relationship_type = $4)
-	// OR (requestor_id = $1 AND target_id = $2 AND relationship_type = $5)
-	rows, err := repo.db.QueryContext(ctx, query, sender_id, constants.FRIEND)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query recipients: %w", err)
-	}
-	defer rows.Close()
-	fmt.Println(rows)
-	for rows.Next() {
-		var email string
-		if err := rows.Scan(&email); err != nil {
-			return nil, fmt.Errorf("failed to scan email: %w", err)
-		}
-		emails = append(emails, email)
+func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, text, sender_id string) ([]string, error) {
+	mentionedEmails := extractMentionedEmails(text)
+	emailInterfaces := make([]interface{}, len(mentionedEmails))
+	for i, email := range mentionedEmails {
+		emailInterfaces[i] = email
 	}
 
-	for _, user := range users {
+	recipients, err := models.Users(
+		qm.Select("users.email"),
+		qm.Distinct("users.email"),
+		qm.Where("users.id != ?", sender_id),
+		qm.LeftOuterJoin("relationships AS r1 ON (r1.requestor_id = users.id AND r1.target_id = ?) OR (r1.target_id = users.id AND r1.requestor_id = ?)", sender_id, sender_id),
+		qm.LeftOuterJoin("relationships AS r2 ON r2.requestor_id = users.id AND r2.target_id = ? AND r2.relationship_type = 'Subscribe'", sender_id),
+		qm.Where("users.id NOT IN (SELECT target_id FROM relationships WHERE requestor_id = ? AND relationship_type = 'block')", sender_id),
+		qm.Where("r1.relationship_type = 'Friend' OR r2.relationship_type = 'Subscribe' OR users.email IN ("+strings.Repeat("?,", len(mentionedEmails)-1)+"?)", emailInterfaces...),
+	).All(ctx, repo.db)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get recipients: %v", err)
+	}
+
+	emails := make([]string, 0, len(recipients))
+	for _, user := range recipients {
 		emails = append(emails, user.Email)
 	}
+	fmt.Println(emails)
+
 	return emails, nil
+}
+
+func extractMentionedEmails(text string) []string {
+	emailRegex := `([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})`
+	re := regexp.MustCompile(emailRegex)
+	matches := re.FindAllString(text, -1)
+	emailSet := make(map[string]struct{})
+	for _, email := range matches {
+		emailSet[email] = struct{}{}
+	}
+	uniqueEmails := make([]string, 0, len(emailSet))
+	for email := range emailSet {
+		uniqueEmails = append(uniqueEmails, email)
+	}
+	return uniqueEmails
 }
