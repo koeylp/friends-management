@@ -126,3 +126,25 @@ func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http
 	createdResponse := responses.NewCREATED(nil)
 	createdResponse.Send(w)
 }
+
+func (h *RelationshipHandler) GetUpdatableEmailAddressesHandler(w http.ResponseWriter, r *http.Request) {
+	var recipientsReq subcription.RecipientRequest
+	if err := json.NewDecoder(r.Body).Decode(&recipientsReq); err != nil {
+		responses.NewBadRequestError("Invalid request payload").Send(w)
+		return
+	}
+
+	if err := subcription.ValidateRecipientRequest(&recipientsReq); err != nil {
+		responses.NewBadRequestError(err.Error()).Send(w)
+		return
+	}
+
+	recipients, err := h.relationshipService.GetUpdatableEmailAddresses(context.Background(), &recipientsReq)
+	if err != nil {
+		utils.HandleError(w, err)
+		return
+	}
+
+	okResponse := responses.NewOK(map[string]interface{}{"recipients": recipients})
+	okResponse.Send(w)
+}

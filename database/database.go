@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/koeylp/friends-management/config"
@@ -13,6 +14,9 @@ import (
 var DB *sql.DB
 
 func InitDB() (*sql.DB, error) {
+	boil.DebugMode = true
+
+	boil.DebugWriter = os.Stdout
 	dbConfig := config.GetDBConfig()
 	connStr := dbConfig.GetConnectionString()
 

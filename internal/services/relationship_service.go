@@ -12,6 +12,7 @@ import (
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/responses"
+	"github.com/koeylp/friends-management/utils"
 )
 
 type RelationshipService interface {
@@ -20,6 +21,7 @@ type RelationshipService interface {
 	GetCommonList(ctx context.Context, friend *friend.CommonFriendListReq) ([]string, error)
 	Subcribe(ctx context.Context, subscribeReq *subcription.SubscribeRequest) error
 	BlockUpdates(ctx context.Context, blockReq *block.BlockRequest) error
+	GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error)
 }
 
 type relationshipServiceImpl struct {
@@ -82,7 +84,11 @@ func (s *relationshipServiceImpl) getUsersByEmails(ctx context.Context, emails [
 }
 
 func (s *relationshipServiceImpl) GetCommonList(ctx context.Context, friend *friend.CommonFriendListReq) ([]string, error) {
-	commonFriends, err := s.relationshipRepo.GetCommonFriends(ctx, friend.Friends[0], friend.Friends[1])
+	users, err := s.getUsersByEmails(ctx, friend.Friends)
+	if err != nil {
+		return nil, err
+	}
+	commonFriends, err := s.relationshipRepo.GetCommonFriends(ctx, users)
 	if err != nil {
 		return nil, err
 	}
@@ -136,11 +142,27 @@ func (s *relationshipServiceImpl) BlockUpdates(ctx context.Context, blockReq *bl
 
 	exists, err := s.relationshipRepo.CheckBlockExists(ctx, requestor.ID, target.ID)
 	if err != nil {
-		return fmt.Errorf("failed to check locking updates exist: %w", err)
+		return fmt.Errorf("failed to check blocking updates exist: %w", err)
 	}
 	if exists {
 		return responses.NewBadRequestError("blocking updates already exists between " + requestor.Email + " and " + target.Email)
 	}
 
 	return s.relationshipRepo.BlockUpdates(ctx, requestor.ID, target.ID)
+}
+
+func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error) {
+	sender, err := s.userRepo.GetUserByEmail(ctx, recipientReq.Sender)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, responses.NewBadRequestError("sender not found")
+		}
+		return nil, fmt.Errorf("failed to retrieve requestor: %w", err)
+	}
+	mentionedEmails := utils.GetEmailFromText(recipientReq.Text)
+	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, mentionedEmails, sender.ID)
+	if err != nil {
+		return nil, err
+	}
+	return recipients, nil
 }
