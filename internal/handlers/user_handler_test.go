@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test for creating a user.
 func TestCreateUserHandler(t *testing.T) {
 	mockService := &MockUserService{
 		CreateUserFunc: func(ctx context.Context, req *user.CreateUser) error {

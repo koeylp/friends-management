@@ -19,6 +19,7 @@ func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (
 	return userObj, args.Error(1)
 }
 
+// TestCreateUser_Success tests the successful creation of a user.
 func TestCreateUser_Success(t *testing.T) {
 	mockRepo := &MockUserRepository{ShouldFail: false}
 	userService := NewUserService(mockRepo)
@@ -31,6 +32,7 @@ func TestCreateUser_Success(t *testing.T) {
 	assert.NoError(t, err, "expected no error, got %v", err)
 }
 
+// TestCreateUser_Failure tests the failure scenario when creating a user.
 func TestCreateUser_Failure(t *testing.T) {
 	mockRepo := &MockUserRepository{ShouldFail: true}
 	userService := NewUserService(mockRepo)
@@ -44,6 +46,7 @@ func TestCreateUser_Failure(t *testing.T) {
 	assert.Error(t, err, "expected an error, got nil")
 }
 
+// TestGetUserByEmail tests retrieving a user by email successfully.
 func TestGetUserByEmail(t *testing.T) {
 	mockRepo := &MockUserRepository{ShouldFail: false}
 	userService := NewUserService(mockRepo)
@@ -61,6 +64,7 @@ func TestGetUserByEmail(t *testing.T) {
 	assert.Equal(t, expectedUser, result, "expected and actual user mismatch")
 }
 
+// TestGetUserByEmail_NotFound tests retrieving a user that does not exist.
 func TestGetUserByEmail_NotFound(t *testing.T) {
 	mockRepo := &MockUserRepository{ShouldFail: false}
 	userService := NewUserService(mockRepo)
