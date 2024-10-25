@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestCreateUser tests the CreateUser function of the user repository.
 func TestCreateUser(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -37,6 +38,7 @@ func TestCreateUser(t *testing.T) {
 	}
 }
 
+// TestGetUserByEmail tests the GetUserByEmail function of the user repository.
 func TestGetUserByEmail(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {

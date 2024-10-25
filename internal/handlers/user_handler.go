@@ -10,14 +10,17 @@ import (
 	"github.com/koeylp/friends-management/internal/services"
 )
 
+// UserHandler handles HTTP requests related to user operations
 type UserHandler struct {
 	userService services.UserService
 }
 
+// NewUserHandler initializes a new UserHandler with the provided UserService
 func NewUserHandler(userService services.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
+// CreateUserHandler handles the creation of a new user
 func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 	var createUserReq user.CreateUser
 

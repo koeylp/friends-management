@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TestCreateFriend tests the creation of a friend relationship in the database.
 func TestCreateFriend(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -41,6 +42,7 @@ func TestCreateFriend(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestCheckFriendshipExists tests the functionality to check if a friendship exists.
 func TestCheckFriendshipExists(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -52,7 +54,7 @@ func TestCheckFriendshipExists(t *testing.T) {
 	targetID := "456"
 	relationshipType := constants.FRIEND
 
-	// Test Case: Friendship exists
+	// Case: Friendship exists
 	mock.ExpectQuery(`SELECT EXISTS \(.*\)`).
 		WithArgs(requestorID, targetID, relationshipType).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
@@ -61,7 +63,7 @@ func TestCheckFriendshipExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
-	// Test Case: Friendship does not exist
+	// Case: Friendship does not exist
 	mock.ExpectQuery(`SELECT EXISTS \(.*\)`).
 		WithArgs(requestorID, targetID, relationshipType).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
@@ -73,6 +75,7 @@ func TestCheckFriendshipExists(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// TestGetFriends tests the retrieval of a user's friends by their email.
 func TestGetFriends(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -108,6 +111,7 @@ func TestGetFriends(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// TestGetCommonFriends tests the retrieval of common friends between two users.
 func TestGetCommonFriends(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -158,6 +162,7 @@ func TestGetCommonFriends(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestSubscribe tests the subscription functionality between two users.
 func TestSubscribe(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -187,6 +192,7 @@ func TestSubscribe(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestCheckSubscriptionExists tests the functionality to check if a subscription exists.
 func TestCheckSubscriptionExists(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -219,6 +225,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// TestCheckBlockExists tests the functionality to check if a block exists between two users.
 func TestCheckBlockExists(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
@@ -251,6 +258,7 @@ func TestCheckBlockExists(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// TestBlock tests the BlockUpdates method in the RelationshipRepository.
 func TestBlock(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
@@ -280,6 +288,7 @@ func TestBlock(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestGetUpdatableEmailAddresses tests the GetUpdatableEmailAddresses method in the RelationshipRepository.
 func TestGetUpdatableEmailAddresses(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)

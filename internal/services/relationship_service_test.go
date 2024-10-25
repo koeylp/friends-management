@@ -14,6 +14,12 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// Tests various scenarios for creating a friend relationship, including:
+//   - Existing friendship.
+//   - Successful friendship creation.
+//   - Existing block relationship.
+//   - Database errors during checks.
+//   - User not found scenarios for both requestor and target.
 func TestCreateFriend(t *testing.T) {
 	ctx := context.Background()
 
@@ -100,6 +106,7 @@ func TestCreateFriend(t *testing.T) {
 	assert.EqualError(t, err, "400: user not found with email target@example.com")
 }
 
+// Tests the successful retrieval of a friend's list.
 func TestGetFriendListByEmail_Success(t *testing.T) {
 	mockRelRepo := new(MockRelationshipRepository)
 	mockUserRepo := new(MockUserRepository)
@@ -115,6 +122,7 @@ func TestGetFriendListByEmail_Success(t *testing.T) {
 	mockRelRepo.AssertExpectations(t)
 }
 
+// Tests the case where no friends are found for the given email.
 func TestGetFriendListByEmail_NoFriendsFound(t *testing.T) {
 	mockRelRepo := new(MockRelationshipRepository)
 	mockUserRepo := new(MockUserRepository)
@@ -130,6 +138,7 @@ func TestGetFriendListByEmail_NoFriendsFound(t *testing.T) {
 	mockRelRepo.AssertExpectations(t)
 }
 
+// Tests handling errors when fetching friends.
 func TestGetFriendListByEmail_ErrorFetchingFriends(t *testing.T) {
 	mockRelRepo := new(MockRelationshipRepository)
 	mockUserRepo := new(MockUserRepository)
@@ -145,6 +154,7 @@ func TestGetFriendListByEmail_ErrorFetchingFriends(t *testing.T) {
 	mockRelRepo.AssertExpectations(t)
 }
 
+// Tests the retrieval of common friends between two users.
 func TestRelationshipService_GetCommonList(t *testing.T) {
 	ctx := context.Background()
 	mockRelRepo := new(MockRelationshipRepository)
@@ -174,6 +184,7 @@ func TestRelationshipService_GetCommonList(t *testing.T) {
 	mockRelRepo.AssertExpectations(t)
 }
 
+// Tests the successful subscription between users.
 func TestSubcribe_Success(t *testing.T) {
 	ctx := context.Background()
 
@@ -205,6 +216,7 @@ func TestSubcribe_Success(t *testing.T) {
 	mockRelRepo.AssertExpectations(t)
 }
 
+// Tests scenarios for blocking updates, including existing relationships and successful blocking
 func TestBlockUpdates(t *testing.T) {
 	ctx := context.Background()
 
@@ -264,6 +276,8 @@ func TestBlockUpdates(t *testing.T) {
 	assert.EqualError(t, err, "failed to check blocking updates exist: database error")
 }
 
+// Tests the retrieval of updatable email addresses based on a message from a sender,
+// including error handling for missing sender information.
 func TestGetUpdatableEmailAddresses(t *testing.T) {
 	ctx := context.Background()
 
