@@ -1,4 +1,4 @@
-package repositories_test
+package repositories
 
 import (
 	"context"
@@ -6,9 +6,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/koeylp/friends-management/constants"
+	"github.com/koeylp/friends-management/internal/constants"
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +17,7 @@ func TestCreateFriend(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "user1-id"
 	targetID := "user2-id"
@@ -47,7 +46,7 @@ func TestCheckFriendshipExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "123"
 	targetID := "456"
@@ -79,7 +78,7 @@ func TestGetFriends(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	email := "test@example.com"
 	userID := "123"
@@ -114,7 +113,7 @@ func TestGetCommonFriends(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	users := []*user.User{
 		{ID: "user1-id", Email: "user1@example.com"},
@@ -164,7 +163,7 @@ func TestSubscribe(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "user1-id"
 	targetID := "user2-id"
@@ -193,7 +192,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "123"
 	targetID := "456"
@@ -225,7 +224,7 @@ func TestCheckBlockExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "123"
 	targetID := "456"
@@ -257,7 +256,7 @@ func TestBlock(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "user1-id"
 	targetID := "user2-id"
@@ -285,7 +284,7 @@ func TestGetUpdatableEmailAddresses(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer db.Close()
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	ctx := context.Background()
 	senderID := "123"

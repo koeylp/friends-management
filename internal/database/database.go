@@ -7,7 +7,7 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/koeylp/friends-management/config"
+	"github.com/koeylp/friends-management/internal/config"
 	"github.com/volatiletech/sqlboiler/boil"
 )
 

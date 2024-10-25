@@ -28,6 +28,10 @@ func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http
 		responses.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
+	if err := friend.ValidateCreateFriendRequest(&createFriendReq); err != nil {
+		responses.NewBadRequestError(err.Error()).Send(w)
+		return
+	}
 
 	err = h.relationshipService.CreateFriend(context.Background(), &createFriendReq)
 	if err != nil {
@@ -47,8 +51,8 @@ func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter,
 		return
 	}
 
-	if emailReq.Email == "" {
-		responses.NewBadRequestError("Email cannot be empty").Send(w)
+	if err := friend.ValidateEmailRequest(&emailReq); err != nil {
+		responses.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
