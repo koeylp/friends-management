@@ -1,4 +1,4 @@
-package handlers_test
+package handlers
 
 import (
 	"bytes"
@@ -9,25 +9,8 @@ import (
 	"testing"
 
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/handlers"
 	"github.com/stretchr/testify/assert"
 )
-
-type MockUserService struct {
-	CreateUserFunc func(ctx context.Context, req *user.CreateUser) error
-}
-
-func (m *MockUserService) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
-	panic("unimplemented")
-}
-
-func (m *MockUserService) CreateUser(ctx context.Context, req *user.CreateUser) error {
-	return m.CreateUserFunc(ctx, req)
-}
-
-func setupUserHandler(mockService *MockUserService) *handlers.UserHandler {
-	return handlers.NewUserHandler(mockService)
-}
 
 func TestCreateUserHandler(t *testing.T) {
 	mockService := &MockUserService{

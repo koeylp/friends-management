@@ -5,10 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
+	"github.com/koeylp/friends-management/internal/dto/relationship/subscription"
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/responses"
@@ -19,9 +20,9 @@ type RelationshipService interface {
 	CreateFriend(ctx context.Context, friend *friend.CreateFriend) error
 	GetFriendListByEmail(ctx context.Context, email string) ([]string, error)
 	GetCommonList(ctx context.Context, friend *friend.CommonFriendListReq) ([]string, error)
-	Subcribe(ctx context.Context, subscribeReq *subcription.SubscribeRequest) error
+	Subscribe(ctx context.Context, subscribeReq *subscription.SubscribeRequest) error
 	BlockUpdates(ctx context.Context, blockReq *block.BlockRequest) error
-	GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error)
+	GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subscription.RecipientRequest) ([]string, error)
 }
 
 type relationshipServiceImpl struct {
@@ -95,7 +96,7 @@ func (s *relationshipServiceImpl) GetCommonList(ctx context.Context, friend *fri
 	return commonFriends, err
 }
 
-func (s *relationshipServiceImpl) Subcribe(ctx context.Context, subscribeReq *subcription.SubscribeRequest) error {
+func (s *relationshipServiceImpl) Subscribe(ctx context.Context, subscribeReq *subscription.SubscribeRequest) error {
 	requestor, err := s.userRepo.GetUserByEmail(ctx, subscribeReq.Requestor)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -112,7 +113,7 @@ func (s *relationshipServiceImpl) Subcribe(ctx context.Context, subscribeReq *su
 		return fmt.Errorf("failed to retrieve target: %w", err)
 	}
 
-	exists, err := s.relationshipRepo.CheckSubcriptionExists(ctx, requestor.ID, target.ID)
+	exists, err := s.relationshipRepo.CheckSubscriptionExists(ctx, requestor.ID, target.ID)
 	if err != nil {
 		return fmt.Errorf("failed to check subcription exist: %w", err)
 	}
@@ -120,7 +121,7 @@ func (s *relationshipServiceImpl) Subcribe(ctx context.Context, subscribeReq *su
 		return responses.NewBadRequestError("subscription already exists between " + requestor.Email + " and " + target.Email)
 	}
 
-	return s.relationshipRepo.Subcribe(ctx, requestor.ID, target.ID)
+	return s.relationshipRepo.Subscribe(ctx, requestor.ID, target.ID)
 }
 
 func (s *relationshipServiceImpl) BlockUpdates(ctx context.Context, blockReq *block.BlockRequest) error {
@@ -151,7 +152,7 @@ func (s *relationshipServiceImpl) BlockUpdates(ctx context.Context, blockReq *bl
 	return s.relationshipRepo.BlockUpdates(ctx, requestor.ID, target.ID)
 }
 
-func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subcription.RecipientRequest) ([]string, error) {
+func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context, recipientReq *subscription.RecipientRequest) ([]string, error) {
 	sender, err := s.userRepo.GetUserByEmail(ctx, recipientReq.Sender)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -160,9 +161,18 @@ func (s *relationshipServiceImpl) GetUpdatableEmailAddresses(ctx context.Context
 		return nil, fmt.Errorf("failed to retrieve requestor: %w", err)
 	}
 	mentionedEmails := utils.GetEmailFromText(recipientReq.Text)
-	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, mentionedEmails, sender.ID)
+	users, err := s.getUsersByEmails(ctx, mentionedEmails)
 	if err != nil {
 		return nil, err
+	}
+	recipients, err := s.relationshipRepo.GetUpdatableEmailAddresses(ctx, sender.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, user := range users {
+		if !slices.Contains(recipients, user.Email) {
+			recipients = append(recipients, user.Email)
+		}
 	}
 	return recipients, nil
 }

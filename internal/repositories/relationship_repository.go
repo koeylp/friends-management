@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koeylp/friends-management/constants"
+	"github.com/koeylp/friends-management/internal/constants"
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/boil"
@@ -23,9 +22,9 @@ type RelationshipRepository interface {
 	GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error)
 
 	// Subcription
-	Subcribe(ctx context.Context, requestor_id, target_id string) error
-	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
-	GetUpdatableEmailAddresses(ctx context.Context, mentionedEmails []string, sender_id string) ([]string, error)
+	Subscribe(ctx context.Context, requestor_id, target_id string) error
+	CheckSubscriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
+	GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error)
 
 	// // Block
 	BlockUpdates(ctx context.Context, requestor_id, target_id string) error
@@ -154,7 +153,7 @@ func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, us
 	return commonFriends, nil
 }
 
-func (repo *relationshipRepositoryImpl) Subcribe(ctx context.Context, requestor_id string, target_id string) error {
+func (repo *relationshipRepositoryImpl) Subscribe(ctx context.Context, requestor_id string, target_id string) error {
 	subcription := models.Relationship{
 		ID:               uuid.New().String(),
 		RequestorID:      requestor_id,
@@ -167,7 +166,7 @@ func (repo *relationshipRepositoryImpl) Subcribe(ctx context.Context, requestor_
 	return subcription.Insert(ctx, repo.db, boil.Infer())
 }
 
-func (repo *relationshipRepositoryImpl) CheckSubcriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+func (repo *relationshipRepositoryImpl) CheckSubscriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
 		SELECT 1 FROM relationships 
@@ -206,12 +205,7 @@ func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, reques
 	return block.Insert(ctx, repo.db, boil.Infer())
 }
 
-func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, mentionedEmails []string, sender_id string) ([]string, error) {
-	emailInterfaces := make([]interface{}, len(mentionedEmails))
-	for i, email := range mentionedEmails {
-		emailInterfaces[i] = email
-	}
-
+func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error) {
 	recipients, err := models.Users(
 		qm.Select("users.email"),
 		qm.Distinct("users.email"),
@@ -219,7 +213,8 @@ func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.C
 		qm.LeftOuterJoin("relationships AS r1 ON (r1.requestor_id = users.id AND r1.target_id = ?) OR (r1.target_id = users.id AND r1.requestor_id = ?)", sender_id, sender_id),
 		qm.LeftOuterJoin("relationships AS r2 ON r2.requestor_id = users.id AND r2.target_id = ? AND r2.relationship_type = ?", sender_id, constants.SUBSCRIBE),
 		qm.Where("users.id NOT IN (SELECT target_id FROM relationships WHERE requestor_id = ? AND relationship_type = ?)", sender_id, constants.BLOCK),
-		qm.Where("r1.relationship_type = 'Friend' OR r2.relationship_type = 'Subscribe' OR users.email IN ("+strings.Repeat("?,", len(mentionedEmails)-1)+"?)", emailInterfaces...),
+		// qm.Where("r1.relationship_type = 'Friend' OR r2.relationship_type = 'Subscribe' OR users.email IN ("+strings.Repeat("?,", len(mentionedEmails)-1)+"?)", emailInterfaces...),
+		qm.Where("r1.relationship_type = 'Friend' OR r2.relationship_type = 'Subscribe'"),
 	).All(ctx, repo.db)
 
 	if err != nil {

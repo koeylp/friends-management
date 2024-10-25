@@ -1,4 +1,4 @@
-package repositories_test
+package repositories
 
 import (
 	"context"
@@ -6,9 +6,8 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/koeylp/friends-management/constants"
+	"github.com/koeylp/friends-management/internal/constants"
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +17,7 @@ func TestCreateFriend(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "user1-id"
 	targetID := "user2-id"
@@ -47,7 +46,7 @@ func TestCheckFriendshipExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "123"
 	targetID := "456"
@@ -79,7 +78,7 @@ func TestGetFriends(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	email := "test@example.com"
 	userID := "123"
@@ -114,7 +113,7 @@ func TestGetCommonFriends(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	users := []*user.User{
 		{ID: "user1-id", Email: "user1@example.com"},
@@ -164,7 +163,7 @@ func TestSubscribe(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "user1-id"
 	targetID := "user2-id"
@@ -180,7 +179,7 @@ func TestSubscribe(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = repo.Subcribe(context.Background(), requestorID, targetID)
+	err = repo.Subscribe(context.Background(), requestorID, targetID)
 
 	assert.NoError(t, err)
 
@@ -193,7 +192,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "123"
 	targetID := "456"
@@ -204,7 +203,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 		WithArgs(requestorID, targetID, relationshipType).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 
-	exists, err := repo.CheckSubcriptionExists(context.Background(), requestorID, targetID)
+	exists, err := repo.CheckSubscriptionExists(context.Background(), requestorID, targetID)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
@@ -213,7 +212,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 		WithArgs(requestorID, targetID, relationshipType).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
 
-	exists, err = repo.CheckSubcriptionExists(context.Background(), requestorID, targetID)
+	exists, err = repo.CheckSubscriptionExists(context.Background(), requestorID, targetID)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
@@ -225,7 +224,7 @@ func TestCheckBlockExists(t *testing.T) {
 	assert.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "123"
 	targetID := "456"
@@ -257,7 +256,7 @@ func TestBlock(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
-	repo := repositories.NewRelationshipRepository(db)
+	repo := NewRelationshipRepository(db)
 
 	requestorID := "user1-id"
 	targetID := "user2-id"
@@ -279,4 +278,30 @@ func TestBlock(t *testing.T) {
 
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
+}
+
+func TestGetUpdatableEmailAddresses(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+	repo := NewRelationshipRepository(db)
+
+	ctx := context.Background()
+	senderID := "123"
+
+	rows := sqlmock.NewRows([]string{"email"}).
+		AddRow("test1@example.com").
+		AddRow("friend@example.com")
+
+	mock.ExpectQuery(`SELECT DISTINCT users.email FROM "users" LEFT JOIN relationships AS r1 ON \(r1\.requestor_id = users\.id AND r1\.target_id = \$1\) OR \(r1\.target_id = users\.id AND r1\.requestor_id = \$2\) LEFT JOIN relationships AS r2 ON r2\.requestor_id = users\.id AND r2\.target_id = \$3 AND r2\.relationship_type = \$4 WHERE \(users\.id != \$5\) AND \(users\.id NOT IN \(SELECT target_id FROM relationships WHERE requestor_id = \$6 AND relationship_type = \$7\)\) AND \(r1\.relationship_type = 'Friend' OR r2\.relationship_type = 'Subscribe'\)`).
+		WithArgs(senderID, senderID, senderID, constants.SUBSCRIBE, senderID, senderID, constants.BLOCK).
+		WillReturnRows(rows)
+
+	emails, err := repo.GetUpdatableEmailAddresses(ctx, senderID)
+
+	require.NoError(t, err)
+	require.Equal(t, []string{"test1@example.com", "friend@example.com"}, emails)
+
+	err = mock.ExpectationsWereMet()
+	require.NoError(t, err)
 }
