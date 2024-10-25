@@ -180,7 +180,7 @@ func TestSubscribe(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err = repo.Subcribe(context.Background(), requestorID, targetID)
+	err = repo.Subscribe(context.Background(), requestorID, targetID)
 
 	assert.NoError(t, err)
 
@@ -204,7 +204,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 		WithArgs(requestorID, targetID, relationshipType).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 
-	exists, err := repo.CheckSubcriptionExists(context.Background(), requestorID, targetID)
+	exists, err := repo.CheckSubscriptionExists(context.Background(), requestorID, targetID)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 
@@ -213,7 +213,7 @@ func TestCheckSubscriptionExists(t *testing.T) {
 		WithArgs(requestorID, targetID, relationshipType).
 		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
 
-	exists, err = repo.CheckSubcriptionExists(context.Background(), requestorID, targetID)
+	exists, err = repo.CheckSubscriptionExists(context.Background(), requestorID, targetID)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 

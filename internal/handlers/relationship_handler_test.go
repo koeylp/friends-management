@@ -11,7 +11,7 @@ import (
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
+	"github.com/koeylp/friends-management/internal/dto/relationship/subscription"
 	"github.com/koeylp/friends-management/internal/handlers"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,9 +20,9 @@ type MockRelationshipService struct {
 	CreateFriendFunc               func(ctx context.Context, req *friend.CreateFriend) error
 	GetFriendListByEmailFunc       func(ctx context.Context, email string) ([]string, error)
 	GetCommonListFunc              func(ctx context.Context, req *friend.CommonFriendListReq) ([]string, error)
-	SubscribeFunc                  func(ctx context.Context, req *subcription.SubscribeRequest) error
+	SubscribeFunc                  func(ctx context.Context, req *subscription.SubscribeRequest) error
 	BlockUpdatesFunc               func(ctx context.Context, req *block.BlockRequest) error
-	GetUpdatableEmailAddressesFunc func(ctx context.Context, req *subcription.RecipientRequest) ([]string, error)
+	GetUpdatableEmailAddressesFunc func(ctx context.Context, req *subscription.RecipientRequest) ([]string, error)
 }
 
 func (m *MockRelationshipService) CreateFriend(ctx context.Context, req *friend.CreateFriend) error {
@@ -37,7 +37,7 @@ func (m *MockRelationshipService) GetCommonList(ctx context.Context, req *friend
 	return m.GetCommonListFunc(ctx, req)
 }
 
-func (m *MockRelationshipService) Subcribe(ctx context.Context, req *subcription.SubscribeRequest) error {
+func (m *MockRelationshipService) Subscribe(ctx context.Context, req *subscription.SubscribeRequest) error {
 	return m.SubscribeFunc(ctx, req)
 }
 
@@ -45,7 +45,7 @@ func (m *MockRelationshipService) BlockUpdates(ctx context.Context, req *block.B
 	return m.BlockUpdatesFunc(ctx, req)
 }
 
-func (m *MockRelationshipService) GetUpdatableEmailAddresses(ctx context.Context, req *subcription.RecipientRequest) ([]string, error) {
+func (m *MockRelationshipService) GetUpdatableEmailAddresses(ctx context.Context, req *subscription.RecipientRequest) ([]string, error) {
 	return m.GetUpdatableEmailAddressesFunc(ctx, req)
 }
 
@@ -209,7 +209,7 @@ func TestGetCommonListHandler(t *testing.T) {
 
 func TestSubscribeHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
-		SubscribeFunc: func(ctx context.Context, req *subcription.SubscribeRequest) error {
+		SubscribeFunc: func(ctx context.Context, req *subscription.SubscribeRequest) error {
 			return nil
 		},
 	}
@@ -217,22 +217,22 @@ func TestSubscribeHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		input          subcription.SubscribeRequest
+		input          subscription.SubscribeRequest
 		expectedStatus int
 	}{
 		{
 			name:           "Valid subscription request",
-			input:          subcription.SubscribeRequest{Requestor: "user@example.com", Target: "friend@example.com"},
+			input:          subscription.SubscribeRequest{Requestor: "user@example.com", Target: "friend@example.com"},
 			expectedStatus: http.StatusCreated,
 		},
 		{
 			name:           "Invalid subscription - same requestor and target",
-			input:          subcription.SubscribeRequest{Requestor: "user@example.com", Target: "user@example.com"},
+			input:          subscription.SubscribeRequest{Requestor: "user@example.com", Target: "user@example.com"},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{
 			name:           "Invalid JSON payload",
-			input:          subcription.SubscribeRequest{},
+			input:          subscription.SubscribeRequest{},
 			expectedStatus: http.StatusBadRequest,
 		},
 	}
@@ -297,7 +297,7 @@ func TestBlockUpdatesHandler(t *testing.T) {
 
 func TestGetUpdatableEmailAddressesHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
-		GetUpdatableEmailAddressesFunc: func(ctx context.Context, req *subcription.RecipientRequest) ([]string, error) {
+		GetUpdatableEmailAddressesFunc: func(ctx context.Context, req *subscription.RecipientRequest) ([]string, error) {
 			return []string{"recipient1@example.com", "recipient2@example.com"}, nil
 		},
 	}
@@ -305,19 +305,19 @@ func TestGetUpdatableEmailAddressesHandler(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		input          subcription.RecipientRequest
+		input          subscription.RecipientRequest
 		expectedStatus int
 		expectedEmails []string
 	}{
 		{
 			name:           "Valid request for updatable emails",
-			input:          subcription.RecipientRequest{Sender: "user@example.com", Text: "Hello Wolrd! kate@example.com"},
+			input:          subscription.RecipientRequest{Sender: "user@example.com", Text: "Hello Wolrd! kate@example.com"},
 			expectedStatus: http.StatusOK,
 			expectedEmails: []string{"recipient1@example.com", "recipient2@example.com"},
 		},
 		{
 			name:           "Invalid request - missing sender and text",
-			input:          subcription.RecipientRequest{},
+			input:          subscription.RecipientRequest{},
 			expectedStatus: http.StatusBadRequest,
 		},
 	}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
+	"github.com/koeylp/friends-management/internal/dto/relationship/subscription"
 	"github.com/koeylp/friends-management/internal/responses"
 	"github.com/koeylp/friends-management/internal/services"
 	"github.com/koeylp/friends-management/utils"
@@ -85,17 +85,17 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 }
 
 func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
-	var subcribeReq subcription.SubscribeRequest
+	var subcribeReq subscription.SubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&subcribeReq); err != nil || subcribeReq.Requestor == subcribeReq.Target {
 		responses.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
-	if err := subcription.ValidateSubscribeRequest(&subcribeReq); err != nil {
+	if err := subscription.ValidateSubscribeRequest(&subcribeReq); err != nil {
 		responses.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	err := h.relationshipService.Subcribe(context.Background(), &subcribeReq)
+	err := h.relationshipService.Subscribe(context.Background(), &subcribeReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
@@ -128,13 +128,13 @@ func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http
 }
 
 func (h *RelationshipHandler) GetUpdatableEmailAddressesHandler(w http.ResponseWriter, r *http.Request) {
-	var recipientsReq subcription.RecipientRequest
+	var recipientsReq subscription.RecipientRequest
 	if err := json.NewDecoder(r.Body).Decode(&recipientsReq); err != nil {
 		responses.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
 
-	if err := subcription.ValidateRecipientRequest(&recipientsReq); err != nil {
+	if err := subscription.ValidateRecipientRequest(&recipientsReq); err != nil {
 		responses.NewBadRequestError(err.Error()).Send(w)
 		return
 	}

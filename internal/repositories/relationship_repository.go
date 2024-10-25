@@ -22,8 +22,8 @@ type RelationshipRepository interface {
 	GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error)
 
 	// Subcription
-	Subcribe(ctx context.Context, requestor_id, target_id string) error
-	CheckSubcriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
+	Subscribe(ctx context.Context, requestor_id, target_id string) error
+	CheckSubscriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 	GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error)
 
 	// // Block
@@ -153,7 +153,7 @@ func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, us
 	return commonFriends, nil
 }
 
-func (repo *relationshipRepositoryImpl) Subcribe(ctx context.Context, requestor_id string, target_id string) error {
+func (repo *relationshipRepositoryImpl) Subscribe(ctx context.Context, requestor_id string, target_id string) error {
 	subcription := models.Relationship{
 		ID:               uuid.New().String(),
 		RequestorID:      requestor_id,
@@ -166,7 +166,7 @@ func (repo *relationshipRepositoryImpl) Subcribe(ctx context.Context, requestor_
 	return subcription.Insert(ctx, repo.db, boil.Infer())
 }
 
-func (repo *relationshipRepositoryImpl) CheckSubcriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+func (repo *relationshipRepositoryImpl) CheckSubscriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
 		SELECT 1 FROM relationships 

@@ -2,21 +2,17 @@ package services_test
 
 import (
 	"context"
-	"database/sql/driver"
+	"database/sql"
 	"errors"
-	"strings"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/internal/dto/relationship/subcription"
+	"github.com/koeylp/friends-management/internal/dto/relationship/subscription"
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/repositories"
 	"github.com/koeylp/friends-management/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
 
 type MockRelationshipRepository struct {
@@ -38,12 +34,12 @@ func (m *MockRelationshipRepository) CheckBlockExists(ctx context.Context, reque
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockRelationshipRepository) CheckSubcriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
+func (m *MockRelationshipRepository) CheckSubscriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
 	args := m.Called(ctx, requestor_id, target_id)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *MockRelationshipRepository) Subcribe(ctx context.Context, requestor_id string, target_id string) error {
+func (m *MockRelationshipRepository) Subscribe(ctx context.Context, requestor_id string, target_id string) error {
 	args := m.Called(ctx, requestor_id, target_id)
 	return args.Error(0)
 }
@@ -263,7 +259,7 @@ func TestSubcribe_Success(t *testing.T) {
 	requestor := &user.User{ID: "123", Email: "requestor@example.com"}
 	target := &user.User{ID: "456", Email: "target@example.com"}
 
-	subscribeReq := &subcription.SubscribeRequest{
+	subscribeReq := &subscription.SubscribeRequest{
 		Requestor: "requestor@example.com",
 		Target:    "target@example.com",
 	}
@@ -271,11 +267,11 @@ func TestSubcribe_Success(t *testing.T) {
 	mockUserRepo.On("GetUserByEmail", ctx, "requestor@example.com").Return(requestor, nil)
 	mockUserRepo.On("GetUserByEmail", ctx, "target@example.com").Return(target, nil)
 
-	mockRelRepo.On("CheckSubcriptionExists", ctx, requestor.ID, target.ID).Return(false, nil)
+	mockRelRepo.On("CheckSubscriptionExists", ctx, requestor.ID, target.ID).Return(false, nil)
 
-	mockRelRepo.On("Subcribe", ctx, requestor.ID, target.ID).Return(nil)
+	mockRelRepo.On("Subscribe", ctx, requestor.ID, target.ID).Return(nil)
 
-	err := service.Subcribe(ctx, subscribeReq)
+	err := service.Subscribe(ctx, subscribeReq)
 
 	assert.NoError(t, err)
 
@@ -346,74 +342,49 @@ func TestBlockUpdates(t *testing.T) {
 }
 
 func TestGetUpdatableEmailAddresses(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	repo := repositories.NewRelationshipRepository(db)
-
 	ctx := context.Background()
-	senderID := "123"
-	mentionedEmails := []string{"email1@example.com", "email2@example.com"} // Example non-empty slice
 
-	// Create placeholders for the IN clause
-	placeholders := strings.Repeat("?,", len(mentionedEmails)-1) + "?"
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(services.MockUserRepository)
+	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
 
-	// SQL query with placeholders
-	query := `
-		SELECT DISTINCT users.email
-		FROM users
-		LEFT JOIN relationships AS r1
-			ON (r1.requestor_id = users.id AND r1.target_id = $1)
-			OR (r1.target_id = users.id AND r1.requestor_id = $2)
-		LEFT JOIN relationships AS r2
-			ON r2.requestor_id = users.id
-			AND r2.target_id = $3
-			AND r2.relationship_type = $4
-		WHERE users.id != $5
-		AND users.id NOT IN (
-			SELECT target_id FROM relationships WHERE requestor_id = $6 AND relationship_type = $7
-		)
-		AND users.email IN (` + placeholders + `)`
-
-	// Mock results
-	rows := sqlmock.NewRows([]string{"email"}).
-		AddRow("email1@example.com").
-		AddRow("email3@example.com")
-
-	// Prepare arguments
-	args := []driver.Value{
-		senderID, senderID, senderID, "Subscribe", senderID, senderID, "Block",
+	recipientReq := &subscription.RecipientRequest{
+		Sender: "sender@example.com",
+		Text:   "This is a test email with some@example.com",
 	}
-	for _, email := range mentionedEmails {
-		args = append(args, email)
-	}
+	sender := &user.User{ID: "1", Email: "sender@example.com"}
+	userMentioned := &user.User{ID: "2", Email: "some@example.com"}
+	updatableEmails := []string{"existing@example.com"}
 
-	// Expectation for the query
-	mock.ExpectQuery(query).
-		WithArgs(args...).
-		WillReturnRows(rows)
+	// Case 1: Sender not found
+	mockUserRepo.On("GetUserByEmail", ctx, "sender@example.com").Return(nil, sql.ErrNoRows)
+	recipients, err := service.GetUpdatableEmailAddresses(ctx, recipientReq)
+	assert.Nil(t, recipients)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "400: sender not found")
 
-	// Call the method
-	emails, err := repo.GetUpdatableEmailAddresses(ctx, senderID)
+	mockUserRepo.ExpectedCalls = nil
 
-	// Validate the result
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"email1@example.com", "email3@example.com"}, emails)
+	// Case 2: Successful retrieval of updatable email addresses
+	mockUserRepo.On("GetUserByEmail", ctx, "sender@example.com").Return(sender, nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "some@example.com").Return(userMentioned, nil)
+	mockRelRepo.On("GetUpdatableEmailAddresses", ctx, sender.ID).Return(updatableEmails, nil)
 
-	// Mock an error case
-	mock.ExpectQuery(query).
-		WithArgs(args...).
-		WillReturnError(errors.New("db error"))
+	recipients, err = service.GetUpdatableEmailAddresses(ctx, recipientReq)
+	assert.Nil(t, err)
+	assert.Contains(t, recipients, "existing@example.com")
+	assert.Contains(t, recipients, "some@example.com")
 
-	// Call again, expecting an error
-	emails, err = repo.GetUpdatableEmailAddresses(ctx, senderID)
+	mockUserRepo.ExpectedCalls = nil
+	mockRelRepo.ExpectedCalls = nil
 
-	// Validate error case
-	assert.Error(t, err)
-	assert.Nil(t, emails)
+	// Case 3: Error in retrieving updatable email addresses
+	mockUserRepo.On("GetUserByEmail", ctx, "sender@example.com").Return(sender, nil)
+	mockUserRepo.On("GetUserByEmail", ctx, "some@example.com").Return(userMentioned, nil)
+	mockRelRepo.On("GetUpdatableEmailAddresses", ctx, sender.ID).Return([]string(nil), errors.New("db error"))
 
-	// Ensure all expectations are met
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
+	recipients, err = service.GetUpdatableEmailAddresses(ctx, recipientReq)
+	assert.Nil(t, recipients)
+	assert.NotNil(t, err)
+	assert.EqualError(t, err, "db error")
 }
