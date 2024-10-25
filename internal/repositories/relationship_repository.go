@@ -14,6 +14,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
+// RelationshipRepository defines the interface for managing user relationships.
 type RelationshipRepository interface {
 	// Friend
 	CreateFriend(ctx context.Context, requestor_id, target_id string) error
@@ -21,24 +22,27 @@ type RelationshipRepository interface {
 	GetFriends(ctx context.Context, email string) ([]string, error)
 	GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error)
 
-	// Subcription
+	// Subscription
 	Subscribe(ctx context.Context, requestor_id, target_id string) error
 	CheckSubscriptionExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 	GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error)
 
-	// // Block
+	// Block
 	BlockUpdates(ctx context.Context, requestor_id, target_id string) error
 	CheckBlockExists(ctx context.Context, requestor_id, target_id string) (bool, error)
 }
 
+// relationshipRepositoryImpl is the implementation of the RelationshipRepository interface.
 type relationshipRepositoryImpl struct {
 	db *sql.DB
 }
 
+// NewRelationshipRepository creates a new instance of RelationshipRepository.
 func NewRelationshipRepository(db *sql.DB) RelationshipRepository {
 	return &relationshipRepositoryImpl{db: db}
 }
 
+// CreateFriend adds a new friendship relationship to the database.
 func (repo *relationshipRepositoryImpl) CreateFriend(ctx context.Context, requestor_id, target_id string) error {
 	friend := models.Relationship{
 		ID:               uuid.New().String(),
@@ -52,6 +56,7 @@ func (repo *relationshipRepositoryImpl) CreateFriend(ctx context.Context, reques
 	return friend.Insert(ctx, repo.db, boil.Infer())
 }
 
+// CheckFriendshipExists checks if a friendship exists between two users.
 func (repo *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
@@ -65,6 +70,7 @@ func (repo *relationshipRepositoryImpl) CheckFriendshipExists(ctx context.Contex
 	return exists, nil
 }
 
+// GetFriends retrieves the list of friends for a given user by email.
 func (repo *relationshipRepositoryImpl) GetFriends(ctx context.Context, email string) ([]string, error) {
 	user, err := models.Users(
 		models.UserWhere.Email.EQ(email),
@@ -103,6 +109,7 @@ func (repo *relationshipRepositoryImpl) GetFriends(ctx context.Context, email st
 	return friends, nil
 }
 
+// GetCommonFriends retrieves the common friends between two users.
 func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error) {
 	query := `
     WITH user1_friends AS (
@@ -153,6 +160,7 @@ func (repo *relationshipRepositoryImpl) GetCommonFriends(ctx context.Context, us
 	return commonFriends, nil
 }
 
+// Subscribe adds a new subscription relationship to the database.
 func (repo *relationshipRepositoryImpl) Subscribe(ctx context.Context, requestor_id string, target_id string) error {
 	subcription := models.Relationship{
 		ID:               uuid.New().String(),
@@ -166,6 +174,7 @@ func (repo *relationshipRepositoryImpl) Subscribe(ctx context.Context, requestor
 	return subcription.Insert(ctx, repo.db, boil.Infer())
 }
 
+// CheckSubscriptionExists checks if a subscription relationship exists between two users.
 func (repo *relationshipRepositoryImpl) CheckSubscriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
@@ -179,6 +188,7 @@ func (repo *relationshipRepositoryImpl) CheckSubscriptionExists(ctx context.Cont
 	return exists, nil
 }
 
+// CheckBlockExists checks if a block relationship exists between two users.
 func (repo *relationshipRepositoryImpl) CheckBlockExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
 	var exists bool
 	query := `SELECT EXISTS (
@@ -192,6 +202,7 @@ func (repo *relationshipRepositoryImpl) CheckBlockExists(ctx context.Context, re
 	return exists, nil
 }
 
+// BlockUpdates adds a new block relationship to the database.
 func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, requestor_id string, target_id string) error {
 	block := models.Relationship{
 		ID:               uuid.New().String(),
@@ -205,6 +216,7 @@ func (repo *relationshipRepositoryImpl) BlockUpdates(ctx context.Context, reques
 	return block.Insert(ctx, repo.db, boil.Infer())
 }
 
+// GetUpdatableEmailAddresses retrieves email addresses that can be updated, filtering out blocked users.
 func (repo *relationshipRepositoryImpl) GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error) {
 	recipients, err := models.Users(
 		qm.Select("users.email"),

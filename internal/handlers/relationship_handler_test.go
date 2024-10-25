@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Test for creating a friendship relationship between two email addresses.
 func TestCreateFriendHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
 		CreateFriendFunc: func(ctx context.Context, req *friend.CreateFriend) error {
@@ -59,6 +60,7 @@ func TestCreateFriendHandler(t *testing.T) {
 	}
 }
 
+// Test for retrieving a list of friends for a specific email address.
 func TestGetFriendListByEmailHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
 		GetFriendListByEmailFunc: func(ctx context.Context, email string) ([]string, error) {
@@ -113,6 +115,7 @@ func TestGetFriendListByEmailHandler(t *testing.T) {
 	}
 }
 
+// Test for retrieving a common list of friends between two users.
 func TestGetCommonListHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
 		GetCommonListFunc: func(ctx context.Context, req *friend.CommonFriendListReq) ([]string, error) {
@@ -169,6 +172,7 @@ func TestGetCommonListHandler(t *testing.T) {
 	}
 }
 
+// Test for handling subscription requests.
 func TestSubscribeHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
 		SubscribeFunc: func(ctx context.Context, req *subscription.SubscribeRequest) error {
@@ -213,6 +217,7 @@ func TestSubscribeHandler(t *testing.T) {
 	}
 }
 
+// Test for handling block updates requests.
 func TestBlockUpdatesHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
 		BlockUpdatesFunc: func(ctx context.Context, req *block.BlockRequest) error {
@@ -257,6 +262,7 @@ func TestBlockUpdatesHandler(t *testing.T) {
 	}
 }
 
+// Test for retrieving updatable email addresses based on sender's updates.
 func TestGetUpdatableEmailAddressesHandler(t *testing.T) {
 	mockService := &MockRelationshipService{
 		GetUpdatableEmailAddressesFunc: func(ctx context.Context, req *subscription.RecipientRequest) ([]string, error) {

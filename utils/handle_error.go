@@ -7,6 +7,15 @@ import (
 	"github.com/koeylp/friends-management/internal/responses"
 )
 
+// HandleError is a utility function that processes errors and sends the appropriate HTTP response.
+// It checks the type of error and responds accordingly:
+// - If the error is of type NotFoundError, it sends a 404 Not Found response.
+// - If the error is of type BadRequestError, it sends a 400 Bad Request response.
+// - For all other errors, it sends a 500 Internal Server Error response.
+//
+// Parameters:
+// - w: http.ResponseWriter used to write the HTTP response.
+// - err: the error that needs to be handled.
 func HandleError(w http.ResponseWriter, err error) {
 	var notFoundErr *responses.NotFoundError
 	var badRequestErr *responses.BadRequestError

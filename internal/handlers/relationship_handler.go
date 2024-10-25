@@ -13,14 +13,17 @@ import (
 	"github.com/koeylp/friends-management/utils"
 )
 
+// RelationshipHandler handles HTTP requests for relationship-related operations.
 type RelationshipHandler struct {
 	relationshipService services.RelationshipService
 }
 
+// NewRelationshipHandler initializes a new RelationshipHandler with the provided service.
 func NewRelationshipHandler(relationshipService services.RelationshipService) *RelationshipHandler {
 	return &RelationshipHandler{relationshipService: relationshipService}
 }
 
+// CreateFriendHandler handles the creation of a friendship relationship.
 func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http.Request) {
 	var createFriendReq friend.CreateFriend
 	err := json.NewDecoder(r.Body).Decode(&createFriendReq)
@@ -43,6 +46,7 @@ func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http
 	createdResponse.Send(w)
 }
 
+// GetFriendListByEmailHandler handles retrieving a friend list by user email.
 func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter, r *http.Request) {
 	var emailReq friend.EmailRequest
 	err := json.NewDecoder(r.Body).Decode(&emailReq)
@@ -66,6 +70,7 @@ func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter,
 	okResponse.Send(w)
 }
 
+// GetCommonListHandler handles retrieving a common friend list for two users.
 func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *http.Request) {
 	var commonFriendsReq friend.CommonFriendListReq
 	err := json.NewDecoder(r.Body).Decode(&commonFriendsReq)
@@ -88,6 +93,7 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 	okResponse.Send(w)
 }
 
+// SubscribeHandler handles the subscription of updates between users.
 func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	var subcribeReq subscription.SubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&subcribeReq); err != nil || subcribeReq.Requestor == subcribeReq.Target {
@@ -109,6 +115,7 @@ func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Re
 	createdResponse.Send(w)
 }
 
+// BlockUpdatesHandler handles blocking updates between users.
 func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	var blockReq block.BlockRequest
 	if err := json.NewDecoder(r.Body).Decode(&blockReq); err != nil || blockReq.Requestor == blockReq.Target {
@@ -131,6 +138,7 @@ func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http
 	createdResponse.Send(w)
 }
 
+// GetUpdatableEmailAddressesHandler retrieves emails that can receive updates.
 func (h *RelationshipHandler) GetUpdatableEmailAddressesHandler(w http.ResponseWriter, r *http.Request) {
 	var recipientsReq subscription.RecipientRequest
 	if err := json.NewDecoder(r.Body).Decode(&recipientsReq); err != nil {
