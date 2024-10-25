@@ -6,8 +6,7 @@ A RESTful API for managing friend relationships, built using Go and PostgreSQL. 
 ## Table of Contents
 - [Features](#features)
 - [Getting Started](#getting-started)
-- [Running the Application](#running-the-application)
-  - [Using Docker](#using-docker)
+- [Using Docker](#using-docker)
 - [Success Cases](#success-cases)
 - [Error Cases](#error-cases)
 
@@ -26,26 +25,6 @@ A RESTful API for managing friend relationships, built using Go and PostgreSQL. 
 - PostgreSQL
 - Docker (optional, for running PostgreSQL in a container)
 
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/koeylp/friends-management.git
-   cd friends-management
-   go mod tidy
-   ```
-
-2. **Run the application:**
-   ```bash
-   go run /cmd/main.go
-   ```
-
-   or if you have built the binary:
-
-   ```bash
-   ./main
-   ```
-
 ## Running the Application
 
 ### Using Docker
@@ -55,7 +34,7 @@ A RESTful API for managing friend relationships, built using Go and PostgreSQL. 
   **Start the application:**
    Run the following command in the root directory of your project:
    ```bash
-   docker-compose up --build
+   docker-compose up --build -d
    ```
 
    This will build the Docker images and start the PostgreSQL database and your application. The application will be available at `http://localhost:8080`.
