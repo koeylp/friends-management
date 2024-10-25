@@ -1,4 +1,4 @@
-package services_test
+package services
 
 import (
 	"context"
@@ -10,67 +10,17 @@ import (
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/relationship/subscription"
 	"github.com/koeylp/friends-management/internal/dto/user"
-	"github.com/koeylp/friends-management/internal/services"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
-
-type MockRelationshipRepository struct {
-	mock.Mock
-}
-
-func (m *MockRelationshipRepository) GetUpdatableEmailAddresses(ctx context.Context, sender_id string) ([]string, error) {
-	args := m.Called(ctx, sender_id)
-	return args.Get(0).([]string), args.Error(1)
-}
-
-func (m *MockRelationshipRepository) BlockUpdates(ctx context.Context, requestor_id string, target_id string) error {
-	args := m.Called(ctx, requestor_id, target_id)
-	return args.Error(0)
-}
-
-func (m *MockRelationshipRepository) CheckBlockExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
-	args := m.Called(ctx, requestor_id, target_id)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *MockRelationshipRepository) CheckSubscriptionExists(ctx context.Context, requestor_id string, target_id string) (bool, error) {
-	args := m.Called(ctx, requestor_id, target_id)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *MockRelationshipRepository) Subscribe(ctx context.Context, requestor_id string, target_id string) error {
-	args := m.Called(ctx, requestor_id, target_id)
-	return args.Error(0)
-}
-
-func (m *MockRelationshipRepository) GetFriends(ctx context.Context, email string) ([]string, error) {
-	args := m.Called(ctx, email)
-	return args.Get(0).([]string), args.Error(1)
-}
-
-func (m *MockRelationshipRepository) CreateFriend(ctx context.Context, requestor_id, target_id string) error {
-	args := m.Called(ctx, requestor_id, target_id)
-	return args.Error(0)
-}
-
-func (m *MockRelationshipRepository) CheckFriendshipExists(ctx context.Context, requestor_id, target_id string) (bool, error) {
-	args := m.Called(ctx, requestor_id, target_id)
-	return args.Bool(0), args.Error(1)
-}
-
-func (m *MockRelationshipRepository) GetCommonFriends(ctx context.Context, users []*user.User) ([]string, error) {
-	args := m.Called(ctx, users)
-	return args.Get(0).([]string), args.Error(1)
-}
 
 func TestCreateFriend(t *testing.T) {
 	ctx := context.Background()
 
 	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
+	mockUserRepo := new(MockUserRepository)
 
-	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	inputEmails := []string{"requestor@example.com", "target@example.com"}
 	input := &friend.CreateFriend{
@@ -158,9 +108,9 @@ func TestCreateFriend(t *testing.T) {
 
 func TestGetFriendListByEmail(t *testing.T) {
 	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
+	mockUserRepo := new(MockUserRepository)
 
-	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	tests := []struct {
 		name          string
@@ -222,8 +172,8 @@ func TestGetFriendListByEmail(t *testing.T) {
 func TestRelationshipService_GetCommonList(t *testing.T) {
 	ctx := context.Background()
 	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
-	mockService := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	mockUserRepo := new(MockUserRepository)
+	mockService := NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	req := &friend.CommonFriendListReq{
 		Friends: []string{"user@example.com", "user1@example.com"},
@@ -252,9 +202,9 @@ func TestSubcribe_Success(t *testing.T) {
 	ctx := context.Background()
 
 	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
+	mockUserRepo := new(MockUserRepository)
 
-	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	requestor := &user.User{ID: "123", Email: "requestor@example.com"}
 	target := &user.User{ID: "456", Email: "target@example.com"}
@@ -283,9 +233,9 @@ func TestBlockUpdates(t *testing.T) {
 	ctx := context.Background()
 
 	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
+	mockUserRepo := new(MockUserRepository)
 
-	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	inputEmails := &block.BlockRequest{
 		Requestor: "requestor@example.com",
@@ -345,8 +295,8 @@ func TestGetUpdatableEmailAddresses(t *testing.T) {
 	ctx := context.Background()
 
 	mockRelRepo := new(MockRelationshipRepository)
-	mockUserRepo := new(services.MockUserRepository)
-	service := services.NewRelationshipService(mockRelRepo, mockUserRepo)
+	mockUserRepo := new(MockUserRepository)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
 	recipientReq := &subscription.RecipientRequest{
 		Sender: "sender@example.com",

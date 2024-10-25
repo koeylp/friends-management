@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/koeylp/friends-management/constants"
+	"github.com/koeylp/friends-management/internal/constants"
 	"github.com/koeylp/friends-management/internal/dto/user"
 	"github.com/koeylp/friends-management/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/boil"

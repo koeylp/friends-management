@@ -10,18 +10,6 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockUserRepository struct {
-	ShouldFail bool
-	mock.Mock
-}
-
-func (m *MockUserRepository) CreateUser(ctx context.Context, u *user.CreateUser) error {
-	if m.ShouldFail {
-		return errors.New("mock error: failed to create user")
-	}
-	return nil
-}
-
 func (m *MockUserRepository) GetUserByEmail(ctx context.Context, email string) (*user.User, error) {
 	args := m.Called(ctx, email)
 	userObj, ok := args.Get(0).(*user.User)

@@ -1,4 +1,4 @@
-package handlers_test
+package handlers
 
 import (
 	"bytes"
@@ -12,46 +12,8 @@ import (
 	"github.com/koeylp/friends-management/internal/dto/relationship/block"
 	"github.com/koeylp/friends-management/internal/dto/relationship/friend"
 	"github.com/koeylp/friends-management/internal/dto/relationship/subscription"
-	"github.com/koeylp/friends-management/internal/handlers"
 	"github.com/stretchr/testify/assert"
 )
-
-type MockRelationshipService struct {
-	CreateFriendFunc               func(ctx context.Context, req *friend.CreateFriend) error
-	GetFriendListByEmailFunc       func(ctx context.Context, email string) ([]string, error)
-	GetCommonListFunc              func(ctx context.Context, req *friend.CommonFriendListReq) ([]string, error)
-	SubscribeFunc                  func(ctx context.Context, req *subscription.SubscribeRequest) error
-	BlockUpdatesFunc               func(ctx context.Context, req *block.BlockRequest) error
-	GetUpdatableEmailAddressesFunc func(ctx context.Context, req *subscription.RecipientRequest) ([]string, error)
-}
-
-func (m *MockRelationshipService) CreateFriend(ctx context.Context, req *friend.CreateFriend) error {
-	return m.CreateFriendFunc(ctx, req)
-}
-
-func (m *MockRelationshipService) GetFriendListByEmail(ctx context.Context, email string) ([]string, error) {
-	return m.GetFriendListByEmailFunc(ctx, email)
-}
-
-func (m *MockRelationshipService) GetCommonList(ctx context.Context, req *friend.CommonFriendListReq) ([]string, error) {
-	return m.GetCommonListFunc(ctx, req)
-}
-
-func (m *MockRelationshipService) Subscribe(ctx context.Context, req *subscription.SubscribeRequest) error {
-	return m.SubscribeFunc(ctx, req)
-}
-
-func (m *MockRelationshipService) BlockUpdates(ctx context.Context, req *block.BlockRequest) error {
-	return m.BlockUpdatesFunc(ctx, req)
-}
-
-func (m *MockRelationshipService) GetUpdatableEmailAddresses(ctx context.Context, req *subscription.RecipientRequest) ([]string, error) {
-	return m.GetUpdatableEmailAddressesFunc(ctx, req)
-}
-
-func setupRelationshipHandler(mockService *MockRelationshipService) *handlers.RelationshipHandler {
-	return handlers.NewRelationshipHandler(mockService)
-}
 
 func TestCreateFriendHandler(t *testing.T) {
 	mockService := &MockRelationshipService{

@@ -4,6 +4,6 @@ type EmailRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-func ValidateEmailRequest(req *CreateFriend) error {
+func ValidateEmailRequest(req *EmailRequest) error {
 	return validate.Struct(req)
 }
