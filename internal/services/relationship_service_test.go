@@ -41,19 +41,17 @@ func TestCreateFriend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "400: friendship already exists between requestor@example.com and target@example.com")
 
-	// Reset expected calls
 	mockRelRepo.ExpectedCalls = nil
 
 	// Case 2: Successful friend creation (no block)
-	// mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
-	// mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, nil)
-	// mockRelRepo.On("CreateFriend", ctx, "1", "2").Return(nil)
+	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
+	mockRelRepo.On("CheckBlockExists", ctx, "1", "2").Return(false, nil)
+	mockRelRepo.On("CreateFriend", ctx, "1", "2").Return(nil)
 
-	// err = service.CreateFriend(ctx, input)
-	// assert.Nil(t, err)
+	err = service.CreateFriend(ctx, input)
+	assert.Nil(t, err)
 
-	// // Reset expected calls
-	// mockRelRepo.ExpectedCalls = nil
+	mockRelRepo.ExpectedCalls = nil
 
 	// Case 3: Block exists between the users
 	mockRelRepo.On("CheckFriendshipExists", ctx, "1", "2").Return(false, nil)
@@ -63,7 +61,6 @@ func TestCreateFriend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "400: blocking updates exists between requestor@example.com and target@example.com")
 
-	// Reset expected calls
 	mockRelRepo.ExpectedCalls = nil
 
 	// Case 4: Error while checking block existence
@@ -74,7 +71,6 @@ func TestCreateFriend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "failed to check blocking updates exist: database error")
 
-	// Reset expected calls
 	mockRelRepo.ExpectedCalls = nil
 
 	// Case 5: Error while checking friendship existence
@@ -84,7 +80,6 @@ func TestCreateFriend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "failed to check friendship exist: database error")
 
-	// Reset expected calls for user repository
 	mockUserRepo.ExpectedCalls = nil
 
 	// Case 6: User not found (requestor)
@@ -94,7 +89,6 @@ func TestCreateFriend(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "400: user not found with email requestor@example.com")
 
-	// Reset expected calls for user repository
 	mockUserRepo.ExpectedCalls = nil
 
 	// Case 7: User not found (target)
@@ -106,67 +100,49 @@ func TestCreateFriend(t *testing.T) {
 	assert.EqualError(t, err, "400: user not found with email target@example.com")
 }
 
-func TestGetFriendListByEmail(t *testing.T) {
+func TestGetFriendListByEmail_Success(t *testing.T) {
 	mockRelRepo := new(MockRelationshipRepository)
 	mockUserRepo := new(MockUserRepository)
-
 	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
-	tests := []struct {
-		name          string
-		email         string
-		setupMocks    func()
-		expectedList  []string
-		expectedError error
-	}{
-		{
-			name:  "successfully retrieve friend list",
-			email: "user@example.com",
-			setupMocks: func() {
-				mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
-					Return([]string{"friend1@example.com", "friend2@example.com"}, nil)
-			},
-			expectedList:  []string{"friend1@example.com", "friend2@example.com"},
-			expectedError: nil,
-		},
-		// {
-		// 	name:  "error retrieving friend list",
-		// 	email: "user@example.com",
-		// 	setupMocks: func() {
-		// 		mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
-		// 			Return(nil, errors.New("internal server error"))
-		// 	},
-		// 	expectedList:  nil,
-		// 	expectedError: errors.New("internal server error"),
-		// },
-		// {
-		// 	name:  "no friends found",
-		// 	email: "user@example.com",
-		// 	setupMocks: func() {
-		// 		mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
-		// 			Return([]string{}, nil)
-		// 	},
-		// 	expectedList:  []string{},
-		// 	expectedError: nil,
-		// },
-	}
+	mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
+		Return([]string{"friend1@example.com", "friend2@example.com"}, nil)
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.setupMocks()
+	friendList, err := service.GetFriendListByEmail(context.Background(), "user@example.com")
+	assert.Equal(t, []string{"friend1@example.com", "friend2@example.com"}, friendList)
+	assert.NoError(t, err)
 
-			friendList, err := service.GetFriendListByEmail(context.Background(), test.email)
+	mockRelRepo.AssertExpectations(t)
+}
 
-			assert.Equal(t, test.expectedList, friendList)
-			if test.expectedError != nil {
-				assert.EqualError(t, err, test.expectedError.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+func TestGetFriendListByEmail_NoFriendsFound(t *testing.T) {
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(MockUserRepository)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
 
-			mockRelRepo.AssertExpectations(t)
-		})
-	}
+	mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
+		Return([]string{}, nil)
+
+	friendList, err := service.GetFriendListByEmail(context.Background(), "user@example.com")
+	assert.Equal(t, []string{}, friendList)
+	assert.NoError(t, err)
+
+	mockRelRepo.AssertExpectations(t)
+}
+
+func TestGetFriendListByEmail_ErrorFetchingFriends(t *testing.T) {
+	mockRelRepo := new(MockRelationshipRepository)
+	mockUserRepo := new(MockUserRepository)
+	service := NewRelationshipService(mockRelRepo, mockUserRepo)
+
+	mockRelRepo.On("GetFriends", mock.Anything, "user@example.com").
+		Return([]string{}, errors.New("database error"))
+
+	friendList, err := service.GetFriendListByEmail(context.Background(), "user@example.com")
+	assert.Nil(t, friendList)
+	assert.EqualError(t, err, "failed to retrieve friends: database error")
+
+	mockRelRepo.AssertExpectations(t)
 }
 
 func TestRelationshipService_GetCommonList(t *testing.T) {
@@ -253,7 +229,6 @@ func TestBlockUpdates(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "failed to retrieve requestor: user not found")
 
-	// Reset expected calls
 	mockUserRepo.ExpectedCalls = nil
 
 	// Case 2: User not found (target)
@@ -263,7 +238,6 @@ func TestBlockUpdates(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "failed to retrieve target: user not found")
 
-	// Reset expected calls
 	mockUserRepo.ExpectedCalls = nil
 
 	// Case 3: Block relationship already exists
@@ -274,7 +248,6 @@ func TestBlockUpdates(t *testing.T) {
 	assert.NotNil(t, err)
 	assert.EqualError(t, err, "400: blocking updates already exists between requestor@example.com and target@example.com")
 
-	// Reset expected calls
 	mockRelRepo.ExpectedCalls = nil
 
 	// Case 4: Successful block
