@@ -1,0 +1,13 @@
+output   = "models"
+wipe     = true
+no-tests = true
+add-enum-types = true
+
+[psql]
+dbname = "friends_db"
+host = "localhost"
+port = 5432
+user = "admin"
+pass = "StrongPassword@123"
+sslmode = "disable"
+schema  = "public"
