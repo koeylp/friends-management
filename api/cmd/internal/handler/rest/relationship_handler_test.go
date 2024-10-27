@@ -9,9 +9,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/block"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/subscription"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/block"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/friend"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/subscription"
 	"github.com/stretchr/testify/assert"
 )
 

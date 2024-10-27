@@ -3,21 +3,22 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	services "github.com/koeylp/friends-management/cmd/internal/controller"
-	"github.com/koeylp/friends-management/cmd/internal/dto/user"
-	"github.com/koeylp/friends-management/cmd/internal/responses"
+	userCtrl "github.com/koeylp/friends-management/cmd/internal/controller/user"
+	"github.com/koeylp/friends-management/cmd/internal/handler/rest/response"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/user"
 )
 
 // UserHandler handles HTTP requests related to user operations
 type UserHandler struct {
-	userService services.UserService
+	userController userCtrl.UserController
 }
 
-// NewUserHandler initializes a new UserHandler with the provided UserService
-func NewUserHandler(userService services.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+// NewUserHandler initializes a new UserHandler with the provided UserController
+func NewUserHandler(userController userCtrl.UserController) *UserHandler {
+	return &UserHandler{userController: userController}
 }
 
 // CreateUserHandler handles the creation of a new user
@@ -30,15 +31,16 @@ func (h *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := user.ValidateCreateUserRequest(&createUserReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
-	err = h.userService.CreateUser(context.Background(), &createUserReq)
+	err = h.userController.CreateUser(context.Background(), &createUserReq)
 	if err != nil {
+		fmt.Println(err)
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
 	}
 
-	createdResponse := responses.NewCREATED(nil)
+	createdResponse := response.NewCREATED(nil)
 	createdResponse.Send(w)
 }

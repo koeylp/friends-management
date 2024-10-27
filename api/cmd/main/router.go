@@ -6,9 +6,11 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/koeylp/friends-management/internal/handlers"
-	"github.com/koeylp/friends-management/internal/repositories"
-	"github.com/koeylp/friends-management/internal/services"
+	relationshipCtrl "github.com/koeylp/friends-management/cmd/internal/controller/relationship"
+	userCtrl "github.com/koeylp/friends-management/cmd/internal/controller/user"
+	handler "github.com/koeylp/friends-management/cmd/internal/handler/rest"
+	relationshipRepo "github.com/koeylp/friends-management/cmd/internal/repository/relationship"
+	userRepo "github.com/koeylp/friends-management/cmd/internal/repository/user"
 	"go.uber.org/fx"
 )
 
@@ -16,7 +18,7 @@ func NewRouter() *chi.Mux {
 	return chi.NewRouter()
 }
 
-func RegisterRoutes(r *chi.Mux, userHandler *handlers.UserHandler, relationshipHandler *handlers.RelationshipHandler) {
+func RegisterRoutes(r *chi.Mux, userHandler *handler.UserHandler, relationshipHandler *handler.RelationshipHandler) {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", userHandler.CreateUserHandler)
@@ -39,12 +41,12 @@ func RegisterRoutes(r *chi.Mux, userHandler *handlers.UserHandler, relationshipH
 var Module = fx.Options(
 	fx.Provide(
 		NewRouter,
-		repositories.NewUserRepository,
-		repositories.NewRelationshipRepository,
-		services.NewUserService,
-		services.NewRelationshipService,
-		handlers.NewUserHandler,
-		handlers.NewRelationshipHandler,
+		userRepo.NewUserRepository,
+		relationshipRepo.NewRelationshipRepository,
+		userCtrl.NewUserController,
+		relationshipCtrl.NewRelationshipController,
+		handler.NewUserHandler,
+		handler.NewRelationshipHandler,
 	),
 	fx.Invoke(RegisterRoutes),
 )

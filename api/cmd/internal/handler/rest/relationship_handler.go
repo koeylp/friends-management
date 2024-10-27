@@ -5,22 +5,22 @@ import (
 	"encoding/json"
 	"net/http"
 
-	services "github.com/koeylp/friends-management/cmd/internal/controller"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/block"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/subscription"
+	relationshipCtrl "github.com/koeylp/friends-management/cmd/internal/controller/relationship"
+	"github.com/koeylp/friends-management/cmd/internal/handler/rest/response"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/block"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/friend"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/subscription"
 	utils "github.com/koeylp/friends-management/cmd/internal/pkg/error_util"
-	"github.com/koeylp/friends-management/cmd/internal/responses"
 )
 
 // RelationshipHandler handles HTTP requests for relationship-related operations.
 type RelationshipHandler struct {
-	relationshipService services.RelationshipService
+	relationshipCtrl relationshipCtrl.RelationshipController
 }
 
 // NewRelationshipHandler initializes a new RelationshipHandler with the provided service.
-func NewRelationshipHandler(relationshipService services.RelationshipService) *RelationshipHandler {
-	return &RelationshipHandler{relationshipService: relationshipService}
+func NewRelationshipHandler(relationshipCtrl relationshipCtrl.RelationshipController) *RelationshipHandler {
+	return &RelationshipHandler{relationshipCtrl: relationshipCtrl}
 }
 
 // CreateFriendHandler handles the creation of a friendship relationship.
@@ -28,21 +28,21 @@ func (h *RelationshipHandler) CreateFriendHandler(w http.ResponseWriter, r *http
 	var createFriendReq friend.CreateFriend
 	err := json.NewDecoder(r.Body).Decode(&createFriendReq)
 	if err != nil || len(createFriendReq.Friends) != 2 || createFriendReq.Friends[0] == createFriendReq.Friends[1] {
-		responses.NewBadRequestError("Invalid request payload").Send(w)
+		response.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
 	if err := friend.ValidateCreateFriendRequest(&createFriendReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	err = h.relationshipService.CreateFriend(context.Background(), &createFriendReq)
+	err = h.relationshipCtrl.CreateFriend(context.Background(), &createFriendReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
 
-	createdResponse := responses.NewCREATED(nil)
+	createdResponse := response.NewCREATED(nil)
 	createdResponse.Send(w)
 }
 
@@ -51,22 +51,22 @@ func (h *RelationshipHandler) GetFriendListByEmailHandler(w http.ResponseWriter,
 	var emailReq friend.EmailRequest
 	err := json.NewDecoder(r.Body).Decode(&emailReq)
 	if err != nil {
-		responses.NewBadRequestError("Invalid request payload: unable to decode JSON").Send(w)
+		response.NewBadRequestError("Invalid request payload: unable to decode JSON").Send(w)
 		return
 	}
 
 	if err := friend.ValidateEmailRequest(&emailReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	friends, err := h.relationshipService.GetFriendListByEmail(context.Background(), emailReq.Email)
+	friends, err := h.relationshipCtrl.GetFriendListByEmail(context.Background(), emailReq.Email)
 	if err != nil {
-		responses.NewInternalServerError(err.Error()).Send(w)
+		utils.HandleError(w, err)
 		return
 	}
 
-	okResponse := responses.NewOK(map[string]interface{}{"friends": friends})
+	okResponse := response.NewOK(map[string]interface{}{"friends": friends})
 	okResponse.Send(w)
 }
 
@@ -75,21 +75,21 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 	var commonFriendsReq friend.CommonFriendListReq
 	err := json.NewDecoder(r.Body).Decode(&commonFriendsReq)
 	if err != nil || len(commonFriendsReq.Friends) != 2 || commonFriendsReq.Friends[0] == commonFriendsReq.Friends[1] {
-		responses.NewBadRequestError("Invalid request payload").Send(w)
+		response.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
 	if err := friend.ValidateCommonFriendListRequest(&commonFriendsReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	commonList, err := h.relationshipService.GetCommonList(context.Background(), &commonFriendsReq)
+	commonList, err := h.relationshipCtrl.GetCommonList(context.Background(), &commonFriendsReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
 
-	okResponse := responses.NewOK(map[string]interface{}{"friends": commonList})
+	okResponse := response.NewOK(map[string]interface{}{"friends": commonList})
 	okResponse.Send(w)
 }
 
@@ -97,21 +97,21 @@ func (h *RelationshipHandler) GetCommonListHandler(w http.ResponseWriter, r *htt
 func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	var subcribeReq subscription.SubscribeRequest
 	if err := json.NewDecoder(r.Body).Decode(&subcribeReq); err != nil || subcribeReq.Requestor == subcribeReq.Target {
-		responses.NewBadRequestError("Invalid request payload").Send(w)
+		response.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
 	if err := subscription.ValidateSubscribeRequest(&subcribeReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	err := h.relationshipService.Subscribe(context.Background(), &subcribeReq)
+	err := h.relationshipCtrl.Subscribe(context.Background(), &subcribeReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
 
-	createdResponse := responses.NewCREATED(nil)
+	createdResponse := response.NewCREATED(nil)
 	createdResponse.Send(w)
 }
 
@@ -119,22 +119,22 @@ func (h *RelationshipHandler) SubscribeHandler(w http.ResponseWriter, r *http.Re
 func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	var blockReq block.BlockRequest
 	if err := json.NewDecoder(r.Body).Decode(&blockReq); err != nil || blockReq.Requestor == blockReq.Target {
-		responses.NewBadRequestError("Invalid request payload").Send(w)
+		response.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
 
 	if err := block.ValidateBlockRequest(&blockReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	err := h.relationshipService.BlockUpdates(context.Background(), &blockReq)
+	err := h.relationshipCtrl.BlockUpdates(context.Background(), &blockReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
 
-	createdResponse := responses.NewCREATED(nil)
+	createdResponse := response.NewCREATED(nil)
 	createdResponse.Send(w)
 }
 
@@ -142,21 +142,21 @@ func (h *RelationshipHandler) BlockUpdatesHandler(w http.ResponseWriter, r *http
 func (h *RelationshipHandler) GetUpdatableEmailAddressesHandler(w http.ResponseWriter, r *http.Request) {
 	var recipientsReq subscription.RecipientRequest
 	if err := json.NewDecoder(r.Body).Decode(&recipientsReq); err != nil {
-		responses.NewBadRequestError("Invalid request payload").Send(w)
+		response.NewBadRequestError("Invalid request payload").Send(w)
 		return
 	}
 
 	if err := subscription.ValidateRecipientRequest(&recipientsReq); err != nil {
-		responses.NewBadRequestError(err.Error()).Send(w)
+		response.NewBadRequestError(err.Error()).Send(w)
 		return
 	}
 
-	recipients, err := h.relationshipService.GetUpdatableEmailAddresses(context.Background(), &recipientsReq)
+	recipients, err := h.relationshipCtrl.GetUpdatableEmailAddresses(context.Background(), &recipientsReq)
 	if err != nil {
 		utils.HandleError(w, err)
 		return
 	}
 
-	okResponse := responses.NewOK(map[string]interface{}{"recipients": recipients})
+	okResponse := response.NewOK(map[string]interface{}{"recipients": recipients})
 	okResponse.Send(w)
 }

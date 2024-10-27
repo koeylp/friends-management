@@ -3,10 +3,10 @@ package handlers
 import (
 	"context"
 
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/block"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/friend"
-	"github.com/koeylp/friends-management/cmd/internal/dto/relationship/subscription"
-	"github.com/koeylp/friends-management/cmd/internal/dto/user"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/block"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/friend"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/relationship/subscription"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/user"
 )
 
 // MockRelationshipService is a mock implementation of a relationship service for testing purposes.

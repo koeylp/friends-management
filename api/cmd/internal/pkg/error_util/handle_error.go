@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/koeylp/friends-management/cmd/internal/responses"
+	responses "github.com/koeylp/friends-management/cmd/internal/handler/rest/response"
 )
 
 // HandleError is a utility function that processes errors and sends the appropriate HTTP response.

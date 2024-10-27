@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/koeylp/friends-management/cmd/internal/dto/user"
+	"github.com/koeylp/friends-management/cmd/internal/model/dto/user"
 	"github.com/stretchr/testify/assert"
 )
 
