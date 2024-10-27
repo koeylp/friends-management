@@ -53,8 +53,8 @@ docker-compose down
   ```json
   {
       "friends": [
-          "user2@example.com",
-          "user6@example.com"
+          "john@example.com",
+          "alex@example.com"
       ]
   }
   ```
@@ -63,7 +63,7 @@ docker-compose down
 - **Example Response:**
   ```json
   {
-     "email": "user6@example.com"
+     "email": "john@example.com"
   }
   ```
 ### Retrieve the common friend list
@@ -71,7 +71,7 @@ docker-compose down
 - **Example Response:**
   ```json
   {
-      "email": "user6@example.com"
+      "email": "john@example.com"
   }
   ```
 ### Subscribe updates 
@@ -79,8 +79,8 @@ docker-compose down
 - **Example Response:**
   ```json
   {
-      "requestor": "user@example.com",
-      "target": "user@example.com"
+      "requestor": "john@example.com",
+      "target": "alex@example.com"
   }
   ```
 ### Block updates
@@ -88,8 +88,8 @@ docker-compose down
 - **Example Response:**
   ```json
   {
-      "requestor": "user@example.com",
-      "target": "user@example.com"
+      "requestor": "john@example.com",
+      "target": "alex@example.com"
   }
   ```
 ### Retrieve all updatable email addresses
@@ -97,8 +97,8 @@ docker-compose down
 - **Example Response:**
   ```json
   {
-   "sender": "user9@example.com",
-   "text": "Hello World! user7@example.com, user8@example.com, user9@example.com"
+   "sender": "john@example.com",
+   "text": "Hello World! lee@example.com, doe@example.com, peter@example.com"
   }
   ```
   
@@ -117,8 +117,8 @@ docker-compose down
   {
     "count": 2,
     "recipients": [
-        "user7@example.com",
-        "user8@example.com"
+        "alex@example.com",
+        "john@example.com"
     ],
     "success": true
   }
@@ -132,7 +132,7 @@ docker-compose down
 - **Request Body:**
   ```json
   {
-    "Message": "user not found with email user222@example.com",
+    "Message": "user not found with email poo@example.com",
     "Time": "2024-10-24T17:14:11.389023506+07:00"
   }
   ```
